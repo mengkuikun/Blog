@@ -1,0 +1,116 @@
+﻿---
+import type { Page } from "astro";
+import Icon from "@components/Icon.astro";
+import { url } from "../../utils/url-utils";
+interface Props {
+	page: Page;
+	sort?: string;
+	class?: string;
+	style?: string;
+}
+
+const { page, style, sort } = Astro.props;
+
+const HIDDEN = -1;
+
+const className = Astro.props.class;
+
+const ADJ_DIST = 2;
+const VISIBLE = ADJ_DIST * 2 + 1;
+
+// for test
+let count = 1;
+let l = page.currentPage;
+let r = page.currentPage;
+while (0 < l - 1 && r + 1 <= page.lastPage && count + 2 <= VISIBLE) {
+	count += 2;
+	l--;
+	r++;
+}
+while (0 < l - 1 && count < VISIBLE) {
+	count++;
+	l--;
+}
+while (r + 1 <= page.lastPage && count < VISIBLE) {
+	count++;
+	r++;
+}
+
+let pages: number[] = [];
+if (l > 1) pages.push(1);
+if (l === 3) pages.push(2);
+if (l > 3) pages.push(HIDDEN);
+for (let i = l; i <= r; i++) pages.push(i);
+if (r < page.lastPage - 2) pages.push(HIDDEN);
+if (r === page.lastPage - 2) pages.push(page.lastPage - 1);
+if (r < page.lastPage) pages.push(page.lastPage);
+
+const getPageUrl = (p: number) => {
+	const prefix = sort ? `/${sort}` : "";
+	if (p === 1) return prefix || "/";
+	return `${prefix}/${p}/`;
+};
+
+const prefix = sort ? `/${sort}` : "";
+---
+
+<div class:list={[className, "flex flex-row gap-3 justify-center"]} style={style}>
+    <a href={page.url.prev || ""} aria-label="Previous Page"
+       class:list={["btn-card overflow-hidden rounded-lg text-[var(--primary)] w-11 h-11",
+           {"disabled": page.url.prev == undefined}
+       ]}
+    >
+        <Icon name="material-symbols:chevron-left-rounded" class="text-[1.75rem]"></Icon>
+    </a>
+    <div class="bg-[var(--card-bg)] flex flex-row rounded-lg items-center text-neutral-300 font-bold" style="backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+        {pages.map((p) => {
+            if (p == HIDDEN)
+                return <button aria-label="Jump to page"
+                               class="jump-btn transition flex items-center justify-center w-8 h-11 rounded-lg overflow-hidden active:scale-[0.85] hover:bg-[var(--btn-card-bg-hover)] active:bg-[var(--btn-card-bg-active)] text-white/75"
+                >
+                    <Icon name="material-symbols:more-horiz" class="mx-1"/>
+                </button>;
+            if (p == page.currentPage)
+                return <div class="h-11 w-11 rounded-lg bg-[var(--primary)] flex items-center justify-center
+                    font-bold text-black/70"
+                >
+                    {p}
+                </div>
+            return <a href={url(getPageUrl(p))} aria-label=`Page ${p}`
+                class="transition flex items-center justify-center w-11 h-11 rounded-lg overflow-hidden active:scale-[0.85] hover:bg-[var(--btn-card-bg-hover)] active:bg-[var(--btn-card-bg-active)] text-white/75"
+            >{p}</a>
+        })}
+    </div>
+    <a href={page.url.next || ""} aria-label="Next Page"
+       class:list={["btn-card overflow-hidden rounded-lg text-[var(--primary)] w-11 h-11",
+           {"disabled": page.url.next == undefined}
+       ]}
+    >
+        <Icon name="material-symbols:chevron-right-rounded" class="text-[1.75rem]"></Icon>
+    </a>
+</div>
+
+<script is:inline define:vars={{ lastPage: page.lastPage, prefix }}>
+    function initJumpButtons() {
+        const btns = document.querySelectorAll('.jump-btn');
+        btns.forEach(btn => {
+            btn.onclick = () => {
+                const target = window.prompt(`请输入要跳转的页码 (1-${lastPage}):`);
+                if (target) {
+                    const pageNum = parseInt(target);
+                    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= lastPage) {
+                        let targetUrl = prefix || "/";
+                        if (pageNum > 1) {
+                            targetUrl = `${prefix}/${pageNum}/`;
+                        }
+                        window.location.href = targetUrl;
+                    } else {
+                        alert('请输入有效的页码！');
+                    }
+                }
+            };
+        });
+    }
+
+    initJumpButtons();
+</script>

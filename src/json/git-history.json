@@ -1,0 +1,310 @@
+{
+  "privacy-policy.md": [
+    {
+      "hash": "812b47901c7f5f1f244fea4e87ee687c9ec9da21",
+      "date": "2026-09-09 23:10:40 +0800",
+      "message": "feat: 精简博客文章库并规范化保留4篇站点说明文档"
+    },
+    {
+      "hash": "a694884cf425b0a34b0234be8a4bd1efc02b40ad",
+      "date": "2026-04-04 22:52:13 +0800",
+      "message": "feat: 将所有存量文章时间统一减去8小时，修正时区偏移"
+    },
+    {
+      "hash": "2e8ac90884266a758b4c0797a0b6e28da91892cc",
+      "date": "2026-03-10 20:23:00 +0800",
+      "message": "chore: remove AI summaries from posts"
+    },
+    {
+      "hash": "0c701d95fa8e3f8bf84028bcce79f14b13cd3091",
+      "date": "2026-03-03 22:16:01 +0800",
+      "message": "docs: 统一博客文章AI摘要模型为gemini-3-flash-preview"
+    },
+    {
+      "hash": "818735aa4d75f643f1d256035fc4e56bd0a30aca",
+      "date": "2026-02-25 22:23:08 +0800",
+      "message": "feat(posts): 为所有文章添加AI摘要并支持AI类型提示块"
+    },
+    {
+      "hash": "e991bcfcd03f7aad5d3d58c59576095c19d1fba3",
+      "date": "2026-02-12 12:05:13 +0800",
+      "message": "docs(隐私政策): 更新Cookie列表并添加Cloudflare Analytics"
+    },
+    {
+      "hash": "aca8d4db106cf29f26036c1c324d37c4332b3232",
+      "date": "2026-02-04 11:02:11 +0800",
+      "message": "docs: 更新隐私政策文档并调整分析脚本配置"
+    },
+    {
+      "hash": "beb787df3cc74ca15b8dcc502588f5941e96e96a",
+      "date": "2026-01-30 03:43:44 +0800",
+      "message": "docs: 更新隐私政策文档的元数据和内容"
+    },
+    {
+      "hash": "24054b4b7011d0b5085d57b33f19add0fd198959",
+      "date": "2026-01-30 03:29:32 +0800",
+      "message": "feat: 添加隐私政策页面和Cookie同意管理"
+    }
+  ],
+  "fuwari.md": [
+    {
+      "hash": "812b47901c7f5f1f244fea4e87ee687c9ec9da21",
+      "date": "2026-09-09 23:10:40 +0800",
+      "message": "feat: 精简博客文章库并规范化保留4篇站点说明文档"
+    },
+    {
+      "hash": "d9df3c856984a4759404572047f1934bd72c5072",
+      "date": "2026-04-19 20:24:16 +0800",
+      "message": "fix: 添加public前缀"
+    },
+    {
+      "hash": "2ccf92b5a1153a852f0511bdd26bf73b26734ed7",
+      "date": "2026-04-19 20:23:32 +0800",
+      "message": "fix: 路径修复"
+    },
+    {
+      "hash": "85ff6c678559499caa61f4319f2bbf711fe9a657",
+      "date": "2026-04-19 17:48:01 +0800",
+      "message": "refactor: 批量更新所有文章图片路径为 public 目录引用"
+    },
+    {
+      "hash": "a694884cf425b0a34b0234be8a4bd1efc02b40ad",
+      "date": "2026-04-04 22:52:13 +0800",
+      "message": "feat: 将所有存量文章时间统一减去8小时，修正时区偏移"
+    },
+    {
+      "hash": "2e8ac90884266a758b4c0797a0b6e28da91892cc",
+      "date": "2026-03-10 20:23:00 +0800",
+      "message": "chore: remove AI summaries from posts"
+    },
+    {
+      "hash": "c82151d8431f921bb56d78c7890b66bb641b859c",
+      "date": "2026-03-08 05:11:45 +0800",
+      "message": "fix: 更新文章描述，优化内容表达并补充 AI 参与等级"
+    },
+    {
+      "hash": "12ed72c2a66a0c485c24d4b5f1d7a54d2cbe5919",
+      "date": "2026-03-01 16:54:35 +0800",
+      "message": "docs: 统一博客文章AI摘要模型为gemini-3-flash-preview并优化内容"
+    },
+    {
+      "hash": "818735aa4d75f643f1d256035fc4e56bd0a30aca",
+      "date": "2026-02-25 22:23:08 +0800",
+      "message": "feat(posts): 为所有文章添加AI摘要并支持AI类型提示块"
+    },
+    {
+      "hash": "ace7ade0a4e626b5d0cf8e00401fa3d117be4498",
+      "date": "2025-12-18 08:25:24 +0800",
+      "message": "docs(posts): 更新文章中的编辑器推荐为黑曜石并调整工作区文件"
+    },
+    {
+      "hash": "c171309a6abc6af1805dc0e89d86da25ec846a6a",
+      "date": "2025-09-17 03:22:12 +0800",
+      "message": "docs(posts): 在教程中添加黑曜石编辑器的推荐链接"
+    },
+    {
+      "hash": "dda7ddabf20b816da9503e01d41dbcddedb7ed62",
+      "date": "2025-09-17 03:21:11 +0800",
+      "message": "docs(posts): 更新fuwari.md的发布日期并调整工作区配置"
+    },
+    {
+      "hash": "0dc07ba698e0cbf31d48bc49d96062b321ff023d",
+      "date": "2025-09-17 03:19:34 +0800",
+      "message": "posts: 发布黑曜石MarkDown编辑器文章"
+    },
+    {
+      "hash": "1fa7ae2efaa82b2240d828b0dc019c0f748c0d13",
+      "date": "2025-08-27 22:50:15 +0800",
+      "message": "docs(posts): 更新Fuwari教程中关于GitHub Desktop的评价"
+    },
+    {
+      "hash": "2f74587a2fb03e0f5513c5608acd72caa32dee7e",
+      "date": "2025-08-01 08:16:25 +0800",
+      "message": "!update: 将图源由R2改为Netlify"
+    },
+    {
+      "hash": "870e7186cc5cf05b4ef835469d612d533d998561",
+      "date": "2025-07-29 09:04:08 +0800",
+      "message": "docs: 更新关于页面的博客名称变更记录"
+    },
+    {
+      "hash": "98609b59922cf0452718413306e784dd28156b69",
+      "date": "2025-07-26 09:15:27 +0800",
+      "message": "feat: 更改域名为2x.nz"
+    },
+    {
+      "hash": "ddf0872a7070c7afbe07e9875529614579c459ee",
+      "date": "2025-07-24 19:40:22 +0800",
+      "message": "posts: 更新博客品牌信息和个人资料"
+    },
+    {
+      "hash": "146fe9bb61ca695bd23761b29752249859cf5e2f",
+      "date": "2025-07-19 16:52:49 +0800",
+      "message": "更改图源为EdgeOne"
+    },
+    {
+      "hash": "9bf0d901f92d8add208ec42c1a8a75e51cd327c1",
+      "date": "2025-07-19 16:09:57 +0800",
+      "message": "chore: 更新图片域名从eo-r2.2x.nz到r2.afo.im"
+    },
+    {
+      "hash": "f5afef144795cec4232cb6e0b78dfc18adb05468",
+      "date": "2025-07-19 15:18:58 +0800",
+      "message": "更改图源为EdgeOne"
+    },
+    {
+      "hash": "c7e56a366c6f7fc17fe6c4de1bd013bff0515d20",
+      "date": "2025-07-18 12:27:16 +0800",
+      "message": "1"
+    },
+    {
+      "hash": "c0d89a8f405a6c2248b6a52fd830fd2ace5cc604",
+      "date": "2025-07-12 23:14:56 +0800",
+      "message": "posts: 修复文档中icones.js的错误链接"
+    },
+    {
+      "hash": "4e3e7e820c3e22534fac00e3a6c89d524b75d3c9",
+      "date": "2025-07-01 23:29:28 +0800",
+      "message": "posts: 更改图源CDN为Secbit MCDN，并且页脚放置赞助信息"
+    },
+    {
+      "hash": "b480111c6c6201df9ea64bbc8bba0630b48e529e",
+      "date": "2025-06-26 21:07:29 +0800",
+      "message": "update: 更新R2源。删除302"
+    },
+    {
+      "hash": "e2d1f685d7272600c25e7bd958cd3c410111aebb",
+      "date": "2025-06-25 00:10:13 +0800",
+      "message": "update: 更新R2源"
+    },
+    {
+      "hash": "5178a56949ab7a0868243bd6c5def30bc26fe7aa",
+      "date": "2025-05-16 18:11:52 +0800",
+      "message": "更改图源URL"
+    },
+    {
+      "hash": "b36ee8202b3fa224ae71bd89aca03f13786a9f0e",
+      "date": "2025-04-30 19:44:57 +0800",
+      "message": "更新文章fuwari，修复错误的ICON配置教程，链接由Font Awesome改为icones.js.org，并且重新配图。更新文章gh-proxy和starrail-fast添加对应标签。更新文章static-web将标签Cloudflare Page改为Cloudflare Pages"
+    },
+    {
+      "hash": "d80a2933830d60152013f06a581aa2df2f899a57",
+      "date": "2025-04-30 08:38:25 +0800",
+      "message": "初始化"
+    }
+  ],
+  "auto-pr-link.md": [
+    {
+      "hash": "812b47901c7f5f1f244fea4e87ee687c9ec9da21",
+      "date": "2026-09-09 23:10:40 +0800",
+      "message": "feat: 精简博客文章库并规范化保留4篇站点说明文档"
+    },
+    {
+      "hash": "d9df3c856984a4759404572047f1934bd72c5072",
+      "date": "2026-04-19 20:24:16 +0800",
+      "message": "fix: 添加public前缀"
+    },
+    {
+      "hash": "2ccf92b5a1153a852f0511bdd26bf73b26734ed7",
+      "date": "2026-04-19 20:23:32 +0800",
+      "message": "fix: 路径修复"
+    },
+    {
+      "hash": "85ff6c678559499caa61f4319f2bbf711fe9a657",
+      "date": "2026-04-19 17:48:01 +0800",
+      "message": "refactor: 批量更新所有文章图片路径为 public 目录引用"
+    },
+    {
+      "hash": "a694884cf425b0a34b0234be8a4bd1efc02b40ad",
+      "date": "2026-04-04 22:52:13 +0800",
+      "message": "feat: 将所有存量文章时间统一减去8小时，修正时区偏移"
+    },
+    {
+      "hash": "2e8ac90884266a758b4c0797a0b6e28da91892cc",
+      "date": "2026-03-10 20:23:00 +0800",
+      "message": "chore: remove AI summaries from posts"
+    },
+    {
+      "hash": "41a2ea32165c5eff0f7be9f3322422088e97ffff",
+      "date": "2026-03-08 05:01:09 +0800",
+      "message": "fix: 润色第二批文章措辞并补充 AI 参与等级"
+    },
+    {
+      "hash": "d9f028683bec03d4e990a9c82389b0f9ce61fb5b",
+      "date": "2026-02-28 00:04:57 +0800",
+      "message": "docs: 更新多篇文章的AI摘要模型为gemini-3-flash-preview"
+    },
+    {
+      "hash": "818735aa4d75f643f1d256035fc4e56bd0a30aca",
+      "date": "2026-02-25 22:23:08 +0800",
+      "message": "feat(posts): 为所有文章添加AI摘要并支持AI类型提示块"
+    },
+    {
+      "hash": "e3d9f3a5a677b1c589d855efad84dac24490ea45",
+      "date": "2026-02-18 21:24:29 +0800",
+      "message": "docs(posts): 更新自动友链文章内容并添加相关图片"
+    },
+    {
+      "hash": "cd32d0cc0fb38e30b436030c64f17452b24e787a",
+      "date": "2026-02-18 07:20:48 +0800",
+      "message": "posts: 添加自动化友链处理文章及相关图片资源"
+    }
+  ],
+  "post-diff-guide.md": [
+    {
+      "hash": "812b47901c7f5f1f244fea4e87ee687c9ec9da21",
+      "date": "2026-09-09 23:10:40 +0800",
+      "message": "feat: 精简博客文章库并规范化保留4篇站点说明文档"
+    },
+    {
+      "hash": "dced39bbafad64eca3ee01c72af6dde85909fc18",
+      "date": "2026-09-09 13:30:16 +0800",
+      "message": "feat: 恢复右下角新文章提醒小铃铛面板组件并适配最新架构"
+    },
+    {
+      "hash": "eb2604938dfc4096e237e9c6ec2ed3e7e1265eb5",
+      "date": "2026-04-15 13:07:55 +0800",
+      "message": "refactor: 移除文章更新提醒功能及相关组件"
+    },
+    {
+      "hash": "a694884cf425b0a34b0234be8a4bd1efc02b40ad",
+      "date": "2026-04-04 22:52:13 +0800",
+      "message": "feat: 将所有存量文章时间统一减去8小时，修正时区偏移"
+    },
+    {
+      "hash": "2e8ac90884266a758b4c0797a0b6e28da91892cc",
+      "date": "2026-03-10 20:23:00 +0800",
+      "message": "chore: remove AI summaries from posts"
+    },
+    {
+      "hash": "0c701d95fa8e3f8bf84028bcce79f14b13cd3091",
+      "date": "2026-03-03 22:16:01 +0800",
+      "message": "docs: 统一博客文章AI摘要模型为gemini-3-flash-preview"
+    },
+    {
+      "hash": "818735aa4d75f643f1d256035fc4e56bd0a30aca",
+      "date": "2026-02-25 22:23:08 +0800",
+      "message": "feat(posts): 为所有文章添加AI摘要并支持AI类型提示块"
+    },
+    {
+      "hash": "6a00dca2a21cddb19223be4e83a62c975e85a944",
+      "date": "2026-02-22 04:21:58 +0800",
+      "message": "测试生产Diff"
+    },
+    {
+      "hash": "2b89f774e416151d63acbdd76be458abbb31429d",
+      "date": "2026-02-22 03:25:18 +0800",
+      "message": "docs: 移除文章标题和描述中的夸张用语"
+    },
+    {
+      "hash": "3f7c2a295a3a5eef0555f7bff7299f3235f3fc2c",
+      "date": "2026-02-22 03:02:33 +0800",
+      "message": "docs: 更新文章标题和描述以增强语气"
+    },
+    {
+      "hash": "867cb7efd0f36fe27d110f9fcd0ff04432749b9f",
+      "date": "2026-02-22 01:59:04 +0800",
+      "message": "feat(文章更新提醒): 新增文章更新提醒功能调试工具与指南"
+    }
+  ]
+}

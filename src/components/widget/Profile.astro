@@ -1,0 +1,257 @@
+---
+import { getSortedPosts } from "@utils/content-utils";
+import Icon from "@components/Icon.astro";
+import { render } from "astro:content";
+import { profileConfig, siteConfig, umamiConfig } from "../../config";
+
+const config = profileConfig;
+const posts = await getSortedPosts();
+const totalPosts = posts.length;
+let totalWords = 0;
+for (const post of posts) {
+	const { remarkPluginFrontmatter } = await render(post);
+	if (remarkPluginFrontmatter?.words) {
+		totalWords += remarkPluginFrontmatter.words;
+	}
+}
+---
+<div class="card-base p-4">
+    <div id="profile-avatar-container" class="relative mx-auto lg:mx-0 mb-3 max-w-[12rem] md:max-w-[16rem] lg:max-w-none">
+        <div id="profile-avatar-wrapper" class="relative rounded-2xl overflow-hidden border border-white/10 shadow-md" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
+            <img src={config.avatar} alt="Profile Image of the Author" class="w-full h-full object-cover" width="640" height="640" loading="eager" decoding="async" />
+        </div>
+    </div>
+    <div class="px-2">
+        <div class="font-bold text-xl text-center mb-1 text-neutral-50"><h3>{config.name}</h3></div>
+        <div class="h-1 w-6 bg-[var(--primary)] mx-auto rounded-full mb-2"></div>
+        <div class="text-center text-neutral-400 mb-2.5 text-sm">{config.bio}</div>
+        <div class="flex flex-wrap gap-2 justify-center mb-1">
+            {config.links.length > 1 && config.links.map(item => {
+                const hasUrl = Boolean(item.url && item.url.trim() !== "" && item.url !== "#");
+                return (
+                    <a
+                        rel="me"
+                        aria-label={item.name}
+                        href={hasUrl ? item.url : "javascript:void(0)"}
+                        target={hasUrl ? "_blank" : undefined}
+                        class="btn-regular rounded-xl h-10 w-10 active:scale-90"
+                    >
+                        <Icon name={item.icon} class="text-[1.5rem]"></Icon>
+                    </a>
+                );
+            })}
+            {config.links.length == 1 && (() => {
+                const hasUrl = Boolean(config.links[0].url && config.links[0].url.trim() !== "" && config.links[0].url !== "#");
+                return (
+                    <a
+                        rel="me"
+                        aria-label={config.links[0].name}
+                        href={hasUrl ? config.links[0].url : "javascript:void(0)"}
+                        target={hasUrl ? "_blank" : undefined}
+                        class="btn-regular rounded-xl h-10 gap-2 px-3 font-bold active:scale-95"
+                    >
+                        <Icon name={config.links[0].icon} class="text-[1.5rem]"></Icon>
+                        {config.links[0].name}
+                    </a>
+                );
+            })()}
+        </div>
+        
+        <!-- 全站文章与字数统计 -->
+        <div class="grid grid-cols-2 mt-3 pt-3 border-t border-neutral-700">
+            <div class="text-center">
+                <div class="text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
+                    <Icon name="material-symbols:article-outline" class="text-base"></Icon>
+                    <span class="text-xs">文章数</span>
+                </div>
+                <div class="font-bold text-lg text-neutral-300">{totalPosts}</div>
+            </div>
+            <div class="text-center border-l border-neutral-700">
+                <div class="text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
+                    <Icon name="material-symbols:format-list-numbered" class="text-base"></Icon>
+                    <span class="text-xs">总字数</span>
+                </div>
+                <div class="font-bold text-lg text-neutral-300">
+                    {(totalWords / 10000).toFixed(1)}w
+                </div>
+            </div>
+        </div>
+
+        <!-- 全站访问量统计 -->
+        <div id="site-views-wrapper" class="grid grid-cols-1 mt-3 pt-3 border-t border-neutral-700" style="display: none;">
+            <div class="text-center">
+                <div class="text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
+                    <Icon name="material-symbols:visibility-outline" class="text-base"></Icon>
+                    <span class="text-xs">访问量</span>
+                </div>
+                <div id="site-views" class="font-bold text-lg text-neutral-300"></div>
+            </div>
+            <!--
+            <div class="text-center border-l border-neutral-700">
+                <div class="text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
+                    <Icon name="material-symbols:person" class="text-base"></Icon>
+                    <span class="text-xs">访客数</span>
+                </div>
+                <div id="site-visitors" class="font-bold text-lg text-neutral-300">0</div>
+            </div>
+            -->
+        </div>
+
+        <!-- 直播状态 -->
+        <div id="live-status-wrapper" style="display: none;">
+        </div>
+    </div>
+</div>
+
+<style>
+    .loading-bar {
+    }
+    
+    #profile-avatar-wrapper.live-avatar-ring {
+        border-color: #ef4444 !important;
+        border-width: 3px;
+        overflow: visible !important;
+    }
+    
+    #profile-avatar-wrapper.live-avatar-ring::before {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border: 3px solid #ef4444;
+        pointer-events: none;
+    }
+    
+    :global(.live-link-wrapper) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    
+    :global(.live-badge) {
+        text-align: center;
+        margin-top: 8px;
+        background: rgba(239, 68, 68, 0.95);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: bold;
+        display: inline-block;
+    }
+    
+    :global(#profile-avatar-container.has-live-badge) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+</style>
+
+<script is:inline>
+    // 获取全站访问量统计
+    async function loadSiteStats() {
+        const wrapper = document.getElementById('site-views-wrapper');
+        const viewsElement = document.getElementById('site-views');
+        if (!wrapper || !viewsElement) return;
+        
+        // 监听自定义事件
+        window.addEventListener('site-views-loaded', (e) => {
+            const siteViews = e.detail.views;
+            viewsElement.textContent = siteViews.toString();
+            wrapper.style.display = 'grid';
+        }, { once: true });
+        
+        // 如果已经有数据，直接使用
+        if (window.__SITE_VIEWS__ !== undefined) {
+            viewsElement.textContent = window.__SITE_VIEWS__.toString();
+            wrapper.style.display = 'grid';
+        }
+    }
+
+    // 检测直播状态
+    async function checkLiveStatus() {
+        const avatarWrapper = document.getElementById('profile-avatar-wrapper');
+        const avatarContainer = document.getElementById('profile-avatar-container');
+        if (!avatarWrapper || !avatarContainer) {
+            console.error('Avatar wrapper or container not found');
+            return;
+        }
+
+        const normalizeLiveDom = () => {
+            const liveLinks = avatarContainer.querySelectorAll(':scope > .live-link-wrapper');
+            if (liveLinks.length === 0) return null;
+
+            const primaryLink = liveLinks[0];
+            for (let i = 1; i < liveLinks.length; i += 1) {
+                const extraLink = liveLinks[i];
+                while (extraLink.firstChild) {
+                    primaryLink.appendChild(extraLink.firstChild);
+                }
+                extraLink.remove();
+            }
+
+            const badges = primaryLink.querySelectorAll(':scope > .live-badge');
+            for (let i = 1; i < badges.length; i += 1) {
+                badges[i].remove();
+            }
+            return primaryLink;
+        };
+
+        try {
+            const response = await fetch('https://b-live.2x.nz');
+            if (!response.ok) {
+                console.error('Live status request failed:', response.status);
+                return;
+            }
+
+            const status = await response.text();
+            const isLive = status.trim() === '1';
+
+            if (!isLive) return;
+
+            // 先清理潜在重复节点，保证逻辑幂等
+            let liveLink = normalizeLiveDom();
+
+            avatarWrapper.classList.add('live-avatar-ring');
+            avatarContainer.classList.add('has-live-badge');
+
+            if (!liveLink) {
+                liveLink = document.createElement('a');
+                liveLink.href = 'https://live.bilibili.com/12005649';
+                liveLink.target = '_blank';
+                liveLink.rel = 'noopener noreferrer';
+                liveLink.className = 'live-link-wrapper';
+
+                while (avatarContainer.firstChild) {
+                    liveLink.appendChild(avatarContainer.firstChild);
+                }
+                avatarContainer.appendChild(liveLink);
+            }
+
+            if (!liveLink.querySelector(':scope > .live-badge')) {
+                const liveBadge = document.createElement('div');
+                liveBadge.className = 'live-badge';
+                liveBadge.textContent = '直播中';
+                liveLink.appendChild(liveBadge);
+            }
+        } catch (error) {
+            // 请求失败，保持默认状态
+            console.error('Failed to check live status:', error);
+        }
+    }
+
+
+    function initProfile() {
+        console.log('Profile script loaded');
+        loadSiteStats();
+        checkLiveStatus();
+    }
+
+    // 初次加载
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initProfile, { once: true });
+    } else {
+        initProfile();
+    }
+</script>

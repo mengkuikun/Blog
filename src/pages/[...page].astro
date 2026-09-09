@@ -1,0 +1,51 @@
+---
+import type { GetStaticPaths } from "astro";
+import PostPage from "../components/PostPage.astro";
+import Pagination from "../components/control/Pagination.astro";
+import PostSort from "../components/control/PostSort.astro";
+import { siteConfig } from "../config";
+import { PAGE_SIZE } from "../constants/constants";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+import { getSortedPosts } from "../utils/content-utils";
+
+export const getStaticPaths = (async ({ paginate }) => {
+	const allBlogPosts = await getSortedPosts();
+	return paginate(allBlogPosts, { pageSize: PAGE_SIZE });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+
+// 准备当前页文章数据供客户端排序使用
+const pagePostsData = page.data.map(entry => {
+	const data = entry.data as {
+		title: string;
+		published: Date;
+		pinned?: boolean;
+	};
+	return {
+		id: entry.id,
+		title: data.title,
+		published: data.published.toISOString(),
+		pinned: data.pinned,
+	};
+});
+
+const jsonLd = {
+	"@context": "https://schema.org",
+	"@type": "WebSite",
+	name: siteConfig.title,
+	url: Astro.site,
+	description: siteConfig.description,
+};
+---
+
+<MainGridLayout title={page.currentPage === 1 ? undefined : `第 ${page.currentPage} 页`}>
+    {page.currentPage === 1 && <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>}
+    <PostSort slot="before-content"></PostSort>
+    <PostPage page={page}></PostPage>
+    <Pagination class="mx-auto" page={page}></Pagination>
+	<script define:vars={{ pagePostsData }}>
+		window.__PAGE_POSTS_DATA__ = pagePostsData;
+	</script>
+	<script src="../scripts/post-list-sort.ts"></script>
+</MainGridLayout>

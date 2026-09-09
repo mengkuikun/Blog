@@ -1,0 +1,170 @@
+﻿---
+import { url, pathsEqual } from "@/utils/url-utils";
+import Footer from "@components/Footer.astro";
+import Navbar from "@components/Navbar.astro";
+import BackToTop from "@components/control/BackToTop.astro";
+import SideBar from "@components/widget/SideBar.astro";
+import type { MarkdownHeading } from "astro";
+import Icon from "@components/Icon.astro";
+import ImageWrapper from "../components/misc/ImageWrapper.astro";
+import Announcement from "../components/widget/Announcement.astro";
+import TOC from "../components/widget/TOC.astro";
+import { siteConfig } from "../config";
+import {
+	BANNER_HEIGHT,
+	BANNER_HEIGHT_EXTEND,
+	MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
+} from "../constants/constants";
+import Layout from "./Layout.astro";
+
+interface Props {
+	title?: string;
+	banner?: string;
+	description?: string;
+	lang?: string;
+	setOGTypeArticle?: boolean;
+	ogImage?: string;
+	headings?: MarkdownHeading[];
+}
+
+const {
+	title,
+	banner,
+	description,
+	lang,
+	setOGTypeArticle,
+	ogImage,
+	headings = [],
+} = Astro.props;
+const hasBannerCredit =
+	siteConfig.banner.enable && siteConfig.banner.credit.enable;
+const hasBannerLink = !!siteConfig.banner.credit.url;
+
+const mainPanelTop = siteConfig.banner.enable
+	? `calc(${BANNER_HEIGHT}vh - ${MAIN_PANEL_OVERLAPS_BANNER_HEIGHT}rem - 4.5rem)`
+	: "1rem";
+const forumBasePath = url("/forum/");
+const isForumRoute =
+	pathsEqual(Astro.url.pathname, forumBasePath) ||
+	Astro.url.pathname.startsWith(forumBasePath);
+---
+
+<Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} ogImage={ogImage}>
+
+<!-- Navbar -->
+<slot slot="head" name="head"></slot>
+<div id="top-row" class="z-50 pointer-events-none relative max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
+    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0" style="top: var(--navbar-offset, 0px);">
+        <Navbar></Navbar>
+    </div>
+</div>
+
+<!-- Banner -->
+{siteConfig.banner.enable && <div id="banner-wrapper" class=`absolute z-10 w-full overflow-hidden` style=`top: -${BANNER_HEIGHT_EXTEND}vh`>
+    <ImageWrapper id="banner" alt="Banner image of the blog" class:list={["object-cover h-full opacity-0 scale-105"]}
+                  src={siteConfig.banner.src} position={siteConfig.banner.position}
+    >
+    </ImageWrapper>
+</div>}
+
+<!-- Main content -->
+<div class="relative w-full z-30 pointer-events-none" style=`margin-top: ${mainPanelTop}`>
+    <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
+    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
+        <div id="main-grid" class:list={["w-full left-0 right-0 grid grid-cols-1 grid-rows-[auto_auto_auto] mx-auto gap-4 px-0 md:px-4",
+            {"md:grid-cols-[17.5rem_auto] lg:grid-rows-[auto_1fr] md:grid-rows-[auto_1fr]": !isForumRoute}]}
+        >
+            <!-- Banner image credit -->
+            {hasBannerCredit && <a href={siteConfig.banner.credit.url} id="banner-credit" target="_blank" rel="noopener" aria-label="Visit image source"
+                                   class:list={["group absolute flex justify-center items-center rounded-full " +
+                                   "px-3 right-4 -top-[3.25rem] bg-black/60 hover:bg-black/70 h-9", {"hover:pr-9 active:bg-black/80": hasBannerLink}]}
+            >
+                <Icon class="text-white/75 text-[1.25rem] mr-1" name="material-symbols:copyright-outline-rounded" ></Icon>
+                <div class="text-white/75 text-xs">{siteConfig.banner.credit.text}</div>
+                <Icon class:list={["absolute text-[oklch(0.75_0.14_var(--hue))] right-4 text-[0.75rem] opacity-0",
+                    {"group-hover:opacity-100": hasBannerLink}]}
+                      name="fa6-solid:arrow-up-right-from-square">
+                </Icon>
+            </a>}
+
+            <div id="sidebar" class:list={["mb-4 row-start-2 col-span-1 lg:row-span-2 lg:row-start-1 lg:col-span-1 md:row-span-2 md:row-start-1 md:col-span-1 lg:max-w-[17.5rem] md:max-w-[17.5rem] relative", {"hidden": isForumRoute}]} data-forum-base-path={forumBasePath}>
+                <div id="sidebar-content" transition:persist>
+                    <SideBar headings={headings}></SideBar>
+                </div>
+            </div>
+
+            <main id="main-content" class:list={["row-start-1 col-span-1 overflow-visible min-w-0",
+                {"lg:row-start-1 lg:col-start-2 lg:col-span-1 md:row-start-1 md:col-start-2 md:col-span-1": !isForumRoute}]}>
+                <div id="content-wrapper">
+                    <!-- the overflow-hidden here prevent long text break the layout-->
+                    <Announcement></Announcement>
+
+                    <div id="sort-container">
+                        <slot name="before-content" />
+                    </div>
+                    <div id="content-container">
+                        <slot></slot>
+                    </div>
+                </div>
+            </main>
+
+            <div id="footer" class:list={["footer col-span-1 row-start-3",
+                {"lg:col-span-1 lg:col-start-2 lg:row-start-2 md:col-span-1 md:col-start-2 md:row-start-2": !isForumRoute}]}>
+                <Footer></Footer>
+            </div>
+        </div>
+
+        <BackToTop></BackToTop>
+    </div>
+</div>
+
+<!-- The things that should be under the banner, only the TOC for now -->
+<div class="absolute w-full z-0 hidden min-[1600px]:block">
+    <div class="relative max-w-[var(--page-width)] mx-auto">
+        <!-- TOC component -->
+        {siteConfig.toc.enable && <div id="toc-wrapper" class:list={["absolute top-0 -right-[var(--toc-width)] w-[var(--toc-width)] flex items-center",
+            {"toc-hide": siteConfig.banner.enable}]}
+        >
+            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden">
+                <div id="toc" class="w-full h-full ">
+                    <div class="h-8 w-full"></div>
+                    <TOC headings={headings}></TOC>
+                    <div class="h-8 w-full"></div>
+                </div>
+            </div>
+        </div>}
+
+        {!siteConfig.toc.enable && <div id="toc"></div>}
+    </div>
+</div>
+
+<script is:inline>
+    // Google Ads Anchor Ad support
+    function initGoogleAnchorAdSupport() {
+        const updateNavbarOffset = () => {
+            const bodyPaddingTop = document.body.style.paddingTop;
+            if (bodyPaddingTop && bodyPaddingTop !== '0px') {
+                document.documentElement.style.setProperty('--navbar-offset', bodyPaddingTop);
+            } else {
+                document.documentElement.style.removeProperty('--navbar-offset');
+            }
+        };
+
+        const existingObserver = window.__googleAnchorAdSupportObserver;
+        if (existingObserver) {
+            existingObserver.disconnect();
+        }
+
+        const observer = new MutationObserver(updateNavbarOffset);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+        window.__googleAnchorAdSupportObserver = observer;
+        updateNavbarOffset();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initGoogleAnchorAdSupport, { once: true });
+    } else {
+        initGoogleAnchorAdSupport();
+    }
+</script>
+</Layout>

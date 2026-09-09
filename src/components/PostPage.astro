@@ -1,0 +1,26 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getPostUrlBySlug } from "@utils/url-utils";
+import PostCard from "./PostCard.astro";
+
+const { page } = Astro.props;
+---
+
+<div id="post-list-container" class="transition flex flex-col bg-transparent gap-0 mb-4">
+
+    {page.data.map((entry: CollectionEntry<"posts">) => (
+        <article class="">
+            <PostCard
+                    entry={entry}
+                    title={entry.data.title}
+                    published={entry.data.published}
+                    updated={entry.data.updated}
+                    url={getPostUrlBySlug(entry.id)}
+                    image={entry.data.image}
+                    description={entry.data.description}
+                    draft={entry.data.draft}
+                    loading="lazy"
+            ></PostCard>
+        </article>
+    ))}
+</div>

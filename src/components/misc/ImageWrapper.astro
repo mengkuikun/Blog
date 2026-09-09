@@ -1,0 +1,72 @@
+---
+import path from "node:path";
+interface Props {
+	id?: string;
+	src: string;
+	class?: string;
+	alt?: string;
+	position?: string;
+	basePath?: string;
+	loading?: "eager" | "lazy";
+	objectFit?: "cover" | "contain";
+}
+import { siteConfig } from "../../config";
+import { url } from "../../utils/url-utils";
+
+const {
+	id,
+	src,
+	alt,
+	position = "center",
+	basePath = "/",
+	loading = "lazy",
+	objectFit = "cover",
+} = Astro.props;
+const className = Astro.props.class;
+
+// 判断图片类型
+const isRandom = src === "random" || src.includes("random");
+const isExternal = src.startsWith("http") || src.startsWith("https") || src.startsWith("data:");
+const isPublic = src.startsWith("/");
+const isLocal = !isExternal && !isPublic && !isRandom;
+
+// 计算最终路径
+let finalSrc = src;
+if (isRandom) {
+	finalSrc = "https://p.2x.nz/ri/h/1.webp";
+} else if (isLocal) {
+	// 本地相对路径：'/public/assets/images/xxx.webp'
+	// 转换为绝对路径：'/public/assets/images/xxx.webp'
+	// public 目录下的文件在构建后直接映射到根路径
+	finalSrc = src.replace(/^\.\.\//, "/");
+} else if (isPublic) {
+	finalSrc = url(src);
+}
+
+const imageClass = `w-full h-full object-${objectFit}`;
+const imageStyle = `object-position: ${position}`;
+const fetchPriority = loading === "eager" ? "high" : "low";
+---
+<div id={id} class:list={[className, 'overflow-hidden relative image-wrapper']} style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
+	<img 
+		src={finalSrc} 
+		alt={alt || ""} 
+		class={`${imageClass} image-content ${isRandom ? 'post-cover-random' : ''}`} 
+		style={imageStyle} 
+		loading={loading} 
+		fetchpriority={fetchPriority} 
+		decoding="async"
+	/>
+</div>
+
+<style>
+    .image-content {
+        transition: none;
+    }
+    .image-wrapper {
+        min-height: 0;
+    }
+    .image-content[loading="lazy"] {
+        content-visibility: auto;
+    }
+</style>

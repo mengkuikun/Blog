@@ -1,0 +1,68 @@
+---
+import Icon from "@components/Icon.astro";
+
+interface Props {
+	class?: string;
+	style?: string;
+}
+
+const { class: className, style } = Astro.props;
+---
+<div class:list={["post-sort-container flex flex-wrap items-center gap-2 mb-4 text-neutral-400", className]} style={style}>
+    <div class="flex items-center bg-[var(--card-bg)] rounded-xl p-1 gap-1 shadow-sm border border-white/10">
+        <button data-sort-type="date"
+           class="sort-btn active rounded-lg w-8 h-8 flex items-center justify-center transition-all" 
+           title="按发布日期排序">
+            <Icon name="material-symbols:schedule-outline-rounded" class="text-xl"></Icon>
+        </button>
+        <button data-sort-type="views"
+           class="sort-btn rounded-lg w-8 h-8 flex items-center justify-center transition-all" 
+           title="按访问量排序">
+            <Icon name="material-symbols:visibility-outline-rounded" class="text-xl"></Icon>
+        </button>
+        <button data-sort-type="alpha"
+           class="sort-btn rounded-lg w-8 h-8 flex items-center justify-center transition-all" 
+           title="按标题字母排序">
+            <Icon name="material-symbols:sort-by-alpha-rounded" class="text-xl"></Icon>
+        </button>
+    </div>
+    <button data-sort-order
+       class="btn-regular px-3 h-10 rounded-xl flex items-center gap-1.5 active:scale-95 transition border border-white/10" 
+       title="切换正序/倒序">
+        <Icon name="material-symbols:arrow-downward-rounded" 
+              class="text-xl transition-transform duration-200"></Icon>
+        <span class="text-sm font-medium">倒序</span>
+    </button>
+</div>
+
+<style>
+    .sort-btn {
+        border-radius: 0.5rem !important;
+        border-right: none !important;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+        color: rgba(255, 255, 255, 0.5);
+    }
+    .sort-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+    }
+    .sort-btn:active {
+        transform: scale(0.9);
+    }
+    .sort-btn.active {
+        background-color: var(--primary) !important;
+        color: rgba(0, 0, 0, 0.9) !important;
+        font-weight: bold;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    .sort-btn.active:hover {
+        background-color: var(--primary) !important;
+        color: rgba(0, 0, 0, 0.9) !important;
+    }
+</style>

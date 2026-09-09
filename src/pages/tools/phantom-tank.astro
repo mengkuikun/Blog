@@ -1,0 +1,24 @@
+---
+export const toolMeta = {
+	title: "隐藏图 / 幻影图",
+	description: "本地生成支持白底/黑底显隐效果的 PNG",
+	icon: "material-symbols:layers-rounded",
+	order: 2,
+};
+
+import PhantomTankGenerator from "@components/PhantomTankGenerator.svelte";
+import PageCardHeader from "@components/misc/PageCardHeader.astro";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+
+const title = "光棱坦克 / 幻影坦克图片工具";
+---
+
+<MainGridLayout title={title}>
+	<div class="p-6 md:p-8 border-b border-white/10">
+		<PageCardHeader title={title} icon="material-symbols:layers-rounded" pathname="/phantom-tank/" />
+		<p class="mb-6 text-sm leading-relaxed text-50">
+			同页支持光棱坦克与幻影坦克两种模式：可在浏览器本地完成双图上传、生成、预览与 PNG 下载；所有处理均在前端完成，不会上传到服务端。
+		</p>
+		<PhantomTankGenerator client:visible />
+	</div>
+</MainGridLayout>

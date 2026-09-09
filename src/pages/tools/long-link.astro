@@ -1,0 +1,24 @@
+---
+export const toolMeta = {
+	title: "长链生成",
+	description: "生成 i/I 字符编码的超长链接",
+	icon: "material-symbols:link-rounded",
+	order: 4,
+};
+
+import PageCardHeader from "@components/misc/PageCardHeader.astro";
+import LongLinkGenerator from "@components/LongLinkGenerator.svelte";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+
+const title = "长链生成器";
+---
+
+<MainGridLayout title={title}>
+	<div id="page-content" class="p-6 md:p-8 border-b border-white/10">
+		<PageCardHeader title={title} icon="material-symbols:link-rounded" pathname="/long-link/" />
+		<p class="mb-6 text-sm leading-relaxed text-50">
+			将 URL 编码为 i/I 字符组成的极长链接，生成的链接可直接点击跳转到目标地址。
+		</p>
+		<LongLinkGenerator client:load />
+	</div>
+</MainGridLayout>

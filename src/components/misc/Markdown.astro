@@ -1,0 +1,173 @@
+---
+interface Props {
+	class: string;
+}
+const className = Astro.props.class;
+---
+<div data-pagefind-body class=`prose prose-invert prose-base !max-w-none custom-md break-words ${className}`>
+    <!--<div class="prose prose-invert max-w-none custom-md">-->
+    <!--<div class="max-w-none custom-md">-->
+    <slot/>
+</div>
+
+<script>
+let mermaidLoader: Promise<any> | null = null;
+
+const loadMermaid = async () => {
+    if (!mermaidLoader) {
+        mermaidLoader = import("mermaid").then((mod) => {
+            const mermaid = mod.default;
+            mermaid.initialize({
+                startOnLoad: false,
+                securityLevel: "loose",
+                theme: "base",
+                darkMode: true,
+                themeVariables: {
+                    textColor: "#e5e7eb",
+                    lineColor: "#e5e7eb",
+                    primaryColor: "#1f2937",
+                    primaryTextColor: "#f9fafb",
+                    primaryBorderColor: "#9ca3af",
+                    secondaryColor: "#111827",
+                    secondaryBorderColor: "#9ca3af",
+                    tertiaryColor: "#0f172a",
+                    edgeLabelBackground: "#0b1220",
+                    clusterBkg: "#111827",
+                    clusterBorder: "#9ca3af",
+                },
+            });
+            return mermaid;
+        });
+    }
+
+    return mermaidLoader;
+};
+
+const transformMermaidBlocks = () => {
+    const allPres = document.querySelectorAll(".custom-md pre");
+    const existingMermaid = document.querySelectorAll(".mermaid");
+    const createdContainers: HTMLElement[] = [];
+    
+    allPres.forEach((pre) => {
+        if ((pre as HTMLElement).dataset.mermaidProcessed === "true") return;
+        
+        const code = pre.querySelector("code");
+        const langSources = [
+            code?.getAttribute("data-language"),
+            pre.getAttribute("data-language"),
+            pre.closest("[data-language]")?.getAttribute("data-language"),
+        ];
+        
+        const className = `${pre.className || ""} ${code?.className || ""}`;
+        const lang = (langSources.find(Boolean) || "").toLowerCase();
+        const isMermaid = className.includes("language-mermaid") || lang === "mermaid";
+        
+        if (!isMermaid) return;
+
+        const codeElements = code ? Array.from(code.querySelectorAll(".code:not(summary *)")) : [];
+        const sourceByLines = code
+            ? codeElements
+                .map((el) => (el as HTMLElement).innerText || el.textContent)
+                .map((text) => (text === "\n" ? "" : text))
+                .join("\n")
+                .trim()
+            : "";
+        const source = sourceByLines || (code as HTMLElement)?.innerText?.trim() || code?.textContent?.trim();
+        
+        if (!source) return;
+
+        const container = document.createElement("div");
+        container.className = "mermaid";
+        container.textContent = source;
+        
+        (pre as HTMLElement).dataset.mermaidProcessed = "true";
+        pre.replaceWith(container);
+        createdContainers.push(container);
+    });
+    
+    // 如果没有创建新容器，尝试查找已存在的 mermaid 容器
+    if (createdContainers.length === 0 && existingMermaid.length > 0) {
+        return Array.from(existingMermaid) as HTMLElement[];
+    }
+    
+    return createdContainers;
+};
+
+const renderMermaidBlocks = async () => {
+    const createdContainers = transformMermaidBlocks();
+    
+    if (!createdContainers || !createdContainers.length) return;
+    
+    const mermaid = await loadMermaid();
+    
+    try {
+        await mermaid.run({
+            nodes: createdContainers,
+        });
+    } catch (error) {
+        console.error("[Mermaid] 渲染失败:", error);
+    }
+};
+
+const wrapMarkdownTables = () => {
+    document.querySelectorAll(".custom-md table").forEach((table) => {
+        const parent = table.parentElement;
+        if (parent && parent.classList.contains("table-wrapper")) return;
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-wrapper";
+        table.parentNode?.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+    });
+};
+
+const initMarkdown = () => {
+    wrapMarkdownTables();
+    void renderMermaidBlocks();
+};
+
+// 初始加载
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMarkdown);
+} else {
+    initMarkdown();
+}
+
+document.addEventListener("click", function (e: MouseEvent) {
+    const target = e.target as Element | null;
+
+    const spoiler = target?.closest(".spoiler");
+    if (spoiler) {
+        const isVisible = spoiler.classList.contains("visible");
+        const isLink = target?.closest("a");
+        const isCopyBtn = target?.closest(".copy-btn");
+        
+        if (!isVisible) {
+            // Reveal
+            spoiler.classList.add("visible");
+            spoiler.setAttribute("title", "");
+            e.preventDefault();
+            e.stopPropagation();
+        } 
+        // If visible, do nothing. Let the event propagate to Fancybox or other handlers.
+    }
+}, true); // Use capture to prevent Fancybox from opening on first click
+</script>
+
+<style is:global>
+    .spoiler {
+        filter: blur(0.4rem);
+        transition: filter 0.3s;
+        cursor: pointer;
+        user-select: none;
+    }
+    .spoiler:hover {
+        opacity: 0.8;
+    }
+    .spoiler.visible {
+        filter: none;
+        user-select: auto;
+        cursor: auto; /* Restore default cursor (or zoom-in for fancybox) */
+        opacity: 1;
+    }
+</style>

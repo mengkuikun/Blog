@@ -42,7 +42,7 @@ const tools = Object.entries(toolPagesModules)
 			{tools.map((t) => (
 				<a
 					href={t.href}
-					class="group block rounded-2xl border border-[var(--line-color)] bg-transparent p-5 hover:bg-white/5 hover:border-[var(--primary)] transition-all hover:-translate-y-1"
+					class="group block rounded-xl border border-[var(--line-color)] bg-transparent p-5 hover:bg-[var(--btn-regular-bg)] hover:border-[var(--primary)] transition-all hover:-translate-y-1"
 				>
 					<div class="flex items-center gap-3 mb-2">
 						{t.isCustom ? (

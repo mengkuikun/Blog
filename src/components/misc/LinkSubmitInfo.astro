@@ -1,19 +1,20 @@
 ---
 interface Props {
-	dataType?: "friends";
+	dataType?: "friends" | "sponsors";
 	class?: string;
 }
 
 const { dataType = "friends", class: className } = Astro.props;
 
 const linkText = "https://github.com/mengkuikun/Blog/tree/main/src/data/friends";
+const checkLinksUrl = "https://github.com/mengkuikun/Blog/actions/workflows/check-links.yml";
 ---
 
 <div class:list={["text-sm text-white/60", className]}>
     <p>
-        如果您已添加本站为友链，并且想加入友链名单，<a target="_blank" href={linkText} class="transition link text-[var(--primary)] font-medium underline">请点击这里提交 PR</a>。
+        如果您已添加，并且想加入友链名单，<a target="_blank" href={linkText} class="transition link text-[var(--primary)] font-medium underline">请点击这里提交 PR</a>
     </p>
     <p class="mt-2">
-        我们会定期运行工作流对所有友链站点做连通性测试，欢迎提交 PR 申请交换友链~
+        我们会定期通过 Github Action 运行一个工作流，使用 Github 的 IP 对这里的所有站点做访问性测试，如果不通过测试（如网站无法访问），该条目将被<strong>自动删除</strong>。当您再次做好准备时，欢迎再次提交 PR 申请。访问性测试结果可以<a target="_blank" href={checkLinksUrl} class="transition link text-[var(--primary)] font-medium underline">访问此 URL 来得知</a>。
     </p>
 </div>

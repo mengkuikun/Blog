@@ -5,13 +5,17 @@ interface Props {
 	[key: string]: any;
 }
 
-const { name, class: className, ...rest } = Astro.props;
+const { name, class: className = "", ...rest } = Astro.props;
 
 // 解析图标名称，格式：collection:icon-name
 const [collection, iconName] = name.includes(':') ? name.split(':', 2) : ['', name];
 
 // Iconify CDN URL
 const iconifyUrl = `https://api.iconify.design/${collection}/${iconName}.svg`;
+
+// 检查是否通过 Tailwind 类指定了宽高
+const hasCustomWidth = /\bw-\S+/.test(className);
+const hasCustomHeight = /\bh-\S+/.test(className);
 ---
 
 <span 
@@ -20,8 +24,8 @@ const iconifyUrl = `https://api.iconify.design/${collection}/${iconName}.svg`;
 	{...rest}
 	style={`
 		display: inline-block;
-		width: 1em;
-		height: 1em;
+		${hasCustomWidth ? '' : 'width: 1em;'}
+		${hasCustomHeight ? '' : 'height: 1em;'}
 		background-color: currentColor;
 		mask-image: url('${iconifyUrl}');
 		mask-size: contain;

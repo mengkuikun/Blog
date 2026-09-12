@@ -281,6 +281,20 @@ export default defineConfig({
 		},
 		server: {
 			allowedHosts: [siteConfig.customDomain],
+			proxy: {
+				"^/api/bangumi": {
+					target: "https://api.bgm.tv",
+					changeOrigin: true,
+					rewrite: (path) => {
+						const url = new URL(path, "http://localhost");
+						const uid = url.searchParams.get("userId") || "1005852";
+						return `/v0/users/${uid}/collections?subject_type=2&limit=50`;
+					},
+					headers: {
+						"User-Agent": "MengkuBlog/1.0 (https://github.com/mengkuikun/Blog)",
+					},
+				},
+			},
 		},
 		build: {
 			rollupOptions: {

@@ -87,7 +87,7 @@ export const navBarConfig: NavBarConfig = {
 			name: "追番",
 			url: "/bangumi/",
 			external: false,
-			icon: "material-symbols:smart-display-outline-rounded",
+			icon: "lucide:tv",
 		},
 		{
 			name: "工具",
@@ -175,7 +175,7 @@ export const gitHubEditConfig: GitHubEditConfig = {
 
 export const bangumiConfig: BangumiConfig = {
 	enable: true,
-	userId: "1005852",
+	userId: "mengku",
 	username: "mengku",
 	fallbackToLocal: true,
 };

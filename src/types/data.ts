@@ -25,4 +25,5 @@ export interface BangumiItem {
 	tags?: string[];
 	url: string;
 	updated_at?: string;
+	comment?: string; // 用户在 Bangumi 填写的短评/吐槽
 }

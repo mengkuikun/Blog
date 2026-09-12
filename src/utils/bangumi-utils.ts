@@ -8,6 +8,7 @@ interface RawBgmItem {
 	ep_status: number;
 	rate: number;
 	updated_at: string;
+	comment?: string;
 	subject: {
 		id: number;
 		name: string;
@@ -27,6 +28,40 @@ interface RawBgmItem {
 	};
 }
 
+export function parseRawBgmItems(rawItems: RawBgmItem[]): BangumiItem[] {
+	return rawItems.map((item) => {
+		const sub = item.subject;
+		return {
+			id: item.subject_id,
+			name: sub.name,
+			name_cn: sub.name_cn || sub.name,
+			cover:
+				sub.images?.large ||
+				sub.images?.common ||
+				sub.images?.medium ||
+				sub.images?.small ||
+				"",
+			type: item.type,
+			eps: sub.eps || 0,
+			ep_status: item.ep_status || 0,
+			score: item.rate > 0 ? item.rate : sub.score || 0,
+			summary: sub.short_summary || "",
+			date: sub.date || "",
+			tags: (sub.tags || []).slice(0, 4).map((t) => t.name),
+			url: `https://bgm.tv/subject/${item.subject_id}`,
+			updated_at: item.updated_at,
+			comment: item.comment || "",
+		};
+	});
+}
+
+/**
+ * 快速读取本地静态追番快照，首屏耗时 < 0.1ms
+ */
+export function getStaticBangumiList(): BangumiItem[] {
+	return (localBangumiData || []) as BangumiItem[];
+}
+
 /**
  * 获取追番列表：
  * 优先从 Bangumi OpenAPI 动态拉取最新的看番与打卡记录；
@@ -34,10 +69,10 @@ interface RawBgmItem {
  */
 export async function getBangumiList(): Promise<BangumiItem[]> {
 	if (!bangumiConfig.enable) {
-		return localBangumiData as BangumiItem[];
+		return getStaticBangumiList();
 	}
 
-	const localItems = (localBangumiData || []) as BangumiItem[];
+	const localItems = getStaticBangumiList();
 
 	try {
 		const controller = new AbortController();
@@ -65,29 +100,7 @@ export async function getBangumiList(): Promise<BangumiItem[]> {
 			return localItems;
 		}
 
-		const fetchedItems: BangumiItem[] = data.data.map((item) => {
-			const sub = item.subject;
-			return {
-				id: item.subject_id,
-				name: sub.name,
-				name_cn: sub.name_cn || sub.name,
-				cover:
-					sub.images?.large ||
-					sub.images?.common ||
-					sub.images?.medium ||
-					sub.images?.small ||
-					"",
-				type: item.type,
-				eps: sub.eps || 0,
-				ep_status: item.ep_status || 0,
-				score: item.rate > 0 ? item.rate : sub.score || 0,
-				summary: sub.short_summary || "",
-				date: sub.date || "",
-				tags: (sub.tags || []).slice(0, 4).map((t) => t.name),
-				url: `https://bgm.tv/subject/${item.subject_id}`,
-				updated_at: item.updated_at,
-			};
-		});
+		const fetchedItems = parseRawBgmItems(data.data);
 
 		// 如果允许本地与远程合并（本地自定义番剧）
 		if (bangumiConfig.fallbackToLocal && localItems.length > 0) {

@@ -1,4 +1,5 @@
 import type {
+	BangumiConfig,
 	GitHubEditConfig,
 	ImageFallbackConfig,
 	LicenseConfig,
@@ -83,6 +84,12 @@ export const navBarConfig: NavBarConfig = {
 			icon: "material-symbols:group-outline-rounded",
 		},
 		{
+			name: "追番",
+			url: "/bangumi/",
+			external: false,
+			icon: "material-symbols:smart-display-outline-rounded",
+		},
+		{
 			name: "工具",
 			url: "/tools/",
 			external: false,
@@ -163,7 +170,13 @@ export const umamiConfig: UmamiConfig = {
 
 export const gitHubEditConfig: GitHubEditConfig = {
 	enable: true,
-	baseUrl: "https://github.com/mengkuikun/fuwari/blob/main/src/content/posts",
+	baseUrl: "https://github.com/mengkuikun/Blog/blob/main/src/content/posts",
 };
 
-// todoConfig removed from here
+export const bangumiConfig: BangumiConfig = {
+	enable: true,
+	userId: "1005852",
+	username: "mengku",
+	fallbackToLocal: true,
+};
+

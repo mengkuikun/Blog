@@ -128,3 +128,10 @@ export type NoticeConfig = {
 		| "important";
 	content: string;
 };
+
+export type BangumiConfig = {
+	enable: boolean;
+	userId: string;
+	username?: string;
+	fallbackToLocal?: boolean;
+};

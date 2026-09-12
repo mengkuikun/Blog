@@ -150,10 +150,6 @@ export default defineConfig({
 			status: 302,
 			destination: "https://acofork-uptime.zeabur.app/status/acofork",
 		},
-		"/donate": {
-			status: 302,
-			destination: "/sponsors",
-		},
 		"/tg": {
 			status: 302,
 			destination: "https://t.me/+_07DERp7k1ljYTc1",

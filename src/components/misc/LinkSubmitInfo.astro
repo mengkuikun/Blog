@@ -1,26 +1,19 @@
 ---
 interface Props {
-	dataType: "friends" | "sponsors";
+	dataType?: "friends";
 	class?: string;
 }
 
-const { dataType, class: className } = Astro.props;
+const { dataType = "friends", class: className } = Astro.props;
 
-const linkText =
-	dataType === "friends"
-		? "https://github.com/afoim/fuwari/tree/main/src/data/friends"
-		: "https://github.com/afoim/fuwari/tree/main/src/data/sponsors";
-
-const dataName = dataType === "friends" ? "友链" : "赞助";
+const linkText = "https://github.com/mengkuikun/Blog/tree/main/src/data/friends";
 ---
 
 <div class:list={["text-sm text-white/60", className]}>
     <p>
-        如果您已{dataType === 'friends' ? '添加' : '赞助'}，并且想加入{dataName}名单，<a target="_blank" href={linkText} class="transition link text-[var(--primary)] font-medium underline">请点击这里提交 PR</a>
+        如果您已添加本站为友链，并且想加入友链名单，<a target="_blank" href={linkText} class="transition link text-[var(--primary)] font-medium underline">请点击这里提交 PR</a>。
     </p>
-    {dataType === 'friends' && (
-        <p class="mt-2">
-            我们会定期通过 Github Action 运行一个工作流，使用 Github 的 IP 对这里的所有站点做访问性测试，如果不通过测试（如网站无法访问），该条目将被<strong>自动删除</strong>。当您再次做好准备时，欢迎再次提交 PR 申请。访问性测试结果可以<a target="_blank" href="https://github.com/afoim/fuwari/actions/workflows/check-links.yml" class="transition link text-[var(--primary)] font-medium underline">访问此 URL 来得知</a>。
-        </p>
-    )}
+    <p class="mt-2">
+        我们会定期运行工作流对所有友链站点做连通性测试，欢迎提交 PR 申请交换友链~
+    </p>
 </div>

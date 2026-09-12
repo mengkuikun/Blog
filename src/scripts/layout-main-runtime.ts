@@ -154,8 +154,9 @@ function init() {
 			"iframe.giscus-frame",
 		);
 		if (!frame || !frame.contentWindow) return;
+		const isDark = document.documentElement.classList.contains("dark");
 		frame.contentWindow.postMessage(
-			{ giscus: { setConfig: { theme: "dark" } } },
+			{ giscus: { setConfig: { theme: isDark ? "dark" : "light" } } },
 			"https://giscus.app",
 		);
 	}).observe(document.documentElement, {

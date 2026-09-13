@@ -40,7 +40,9 @@ if (isRandom) {
 	// public 目录下的文件在构建后直接映射到根路径
 	finalSrc = src.replace(/^\.\.\//, "/");
 } else if (isPublic) {
-	finalSrc = url(src);
+	// public 目录下的文件在构建后直接映射到根路径，若误带 /public 前缀则自动规范化剔除
+	const normalizedSrc = src.startsWith("/public/") ? src.slice(7) : src;
+	finalSrc = url(normalizedSrc);
 }
 
 const imageClass = `w-full h-full object-${objectFit}`;

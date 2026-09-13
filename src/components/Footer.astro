@@ -53,146 +53,81 @@ try {
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://astro.build">Astro</a> 和
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/saicaca/fuwari">Fuwari</a> 强力驱动
         <br>
-        感谢
-        <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://www.cloudflare.com/">Cloudflare</a> 提供的 CDN 与 DDoS 防护服务
+        <span id="cdn-provider-wrapper">
+            感谢
+            <a id="cdn-provider-link" class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://www.cloudflare.com/">Cloudflare</a>
+            <span id="cdn-provider-desc">提供的 CDN 与 DDoS 防护服务</span>
+        </span>
         <br>
         本网站代码
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/mengkuikun/Blog">已开源</a>
         <a class="transition link text-white/30 hover:text-[var(--primary)] text-xs ml-1" target="_blank" href={`https://github.com/mengkuikun/Blog/commit/${commitHash}`}>({commitHash} @ {buildDate})</a>
         <br>
-
-		<!-- <a class="transition link text-[var(--primary)] font-medium inline-flex items-center" href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank"><img alt="" src="/favicon/foot-icp.png" width="16" height="16" class="h-4 mr-1">皖ICP备2025099787号-2</a>
-        <br> -->
-        <!-- <div class="server-info-container flex flex-col items-center justify-center gap-1 mt-1">
-            什么？你问我TM的节点显示去哪了？拜托！我都不分流了看那玩意也没集贸用了，所以看集贸看！别看了！
-            Server info will be injected here
-        </div>-->
-         <!-- <a class="transition link text-[var(--primary)] font-medium inline-flex items-center" href="https://beian.mps.gov.cn/#/query/webSearch?code=34010302002608" target="_blank"><img alt="" src="/favicon/foot-ga.png" class="h-4 mr-1">皖公网安备34010302002608号</a>
-        <br> 
     </div>
 </div>
 
-<script is:inline define:vars={{ serverConfig: siteConfig.server || [] }}>
+<script is:inline>
     (() => {
-        if (window.__footerServerInit) return;
-        window.__footerServerInit = true;
+        function updateCDN(server) {
+            const link = document.getElementById("cdn-provider-link");
+            const desc = document.getElementById("cdn-provider-desc");
+            if (!link) return;
 
-        function normalizeUrl(input) {
-            if (!input) return "";
-            return input.trim().replace(/:+$/, "");
-        }
-
-        function createServerEntry(config) {
-            const div = document.createElement('div');
-            div.className = 'flex items-center justify-center';
-
-            const label = document.createElement('span');
-            label.className = 'text-white/30 text-xs mr-1';
-            label.innerText = `${config.text}：`;
-            div.appendChild(label);
-
-            const valueSpan = document.createElement('span');
-            valueSpan.className = 'server-value text-white/30 text-xs';
-            valueSpan.innerText = '检测中...';
-            div.appendChild(valueSpan);
-
-            const iconImg = document.createElement('img');
-            iconImg.className = 'server-icon h-4 ml-1 hidden';
-            iconImg.alt = 'Server Icon';
-            div.appendChild(iconImg);
-
-            return { div, valueSpan, iconImg };
-        }
-
-        function updateEntryDisplay(elements, server) {
-            const { valueSpan, iconImg } = elements;
-            
-            if (server) {
-                const serverLower = server.toLowerCase();
-                let iconSrc = null;
-
-                if (serverLower.includes('esa')) {
-                    iconSrc = '/cdn/esa.svg';
-                } else if (serverLower.includes('edgeone')) {
-                    iconSrc = '/cdn/eo.svg';
-                } else if (serverLower.includes('cloudflare')) {
-                    iconSrc = '/cdn/cf.svg';
-                } else if (serverLower.includes('github')) {
-                    iconSrc = '/cdn/gh.svg';
-                }
-
-                if (iconSrc) {
-                    iconImg.src = iconSrc;
-                    iconImg.classList.remove('hidden');
-                    valueSpan.classList.add('hidden');
-                } else {
-                    valueSpan.innerText = server;
-                    iconImg.classList.add('hidden');
-                    valueSpan.classList.remove('hidden');
-                }
-            } else {
-                valueSpan.innerText = "未知";
-                iconImg.classList.add('hidden');
-                valueSpan.classList.remove('hidden');
+            const s = (server || "").toLowerCase();
+            if (s.includes("edgeone") || s.includes("eo") || s.includes("makers")) {
+                link.href = "https://edgeone.ai/";
+                link.textContent = "腾讯云 EdgeOne";
+                if (desc) desc.textContent = "提供的边缘加速与安全防护服务";
+            } else if (s.includes("cloudflare") || s.includes("cf")) {
+                link.href = "https://www.cloudflare.com/";
+                link.textContent = "Cloudflare";
+                if (desc) desc.textContent = "提供的 CDN 与 DDoS 防护服务";
             }
         }
 
-        async function checkServer(url) {
-            try {
-                const targetUrl = normalizeUrl(url) || window.location.href;
-                const response = await fetch(targetUrl, { method: "HEAD" });
-                return response.headers.get('server');
-            } catch (error) {
-                console.warn(`Failed to fetch server info for ${url}:`, error);
-                return null;
-            }
-        }
-
-        async function initServerInfo() {
-            const containers = document.querySelectorAll('.server-info-container');
-            if (containers.length === 0) return;
-
-            // Check for Dev Mode
-            const isDevMode = localStorage.getItem("dev-mode") === "true";
-            if (isDevMode) {
-                const devServer = localStorage.getItem("dev-server");
-                containers.forEach(container => {
-                    container.innerHTML = '';
-                    const elements = createServerEntry({ text: 'Dev Node' });
-                    container.appendChild(elements.div);
-                    updateEntryDisplay(elements, devServer);
-                });
+        async function detectServer() {
+            // Check Dev Mode or Manual Override
+            const devServer = localStorage.getItem("dev-server");
+            if (devServer) {
+                updateCDN(devServer);
                 return;
             }
 
-            window.__serverInfoCache = window.__serverInfoCache || {};
-            const cache = window.__serverInfoCache;
+            // Check session cache first for instant render without network lag
+            const cached = sessionStorage.getItem("detected_cdn_server");
+            if (cached) {
+                updateCDN(cached);
+                return;
+            }
 
-            const getServerInfo = (url) => {
-                const key = normalizeUrl(url);
-                if (cache[key]) return cache[key];
-                cache[key] = checkServer(key);
-                return cache[key];
-            };
+            try {
+                const res = await fetch(window.location.href, { method: "HEAD" });
+                const serverHeader = res.headers.get("server") || "";
+                const isEdgeOne = serverHeader.toLowerCase().includes("edgeone") || 
+                                  serverHeader.toLowerCase().includes("makers") ||
+                                  res.headers.has("eo-log-uuid") || 
+                                  res.headers.has("eo-cache-status");
+                const isCloudflare = serverHeader.toLowerCase().includes("cloudflare") || 
+                                     res.headers.has("cf-ray");
 
-            containers.forEach(container => {
-                container.innerHTML = '';
-
-                if (!serverConfig || serverConfig.length === 0) {
-                    const elements = createServerEntry({ text: '访问节点' });
-                    container.appendChild(elements.div);
-                    getServerInfo('').then(server => updateEntryDisplay(elements, server));
-                    return;
+                let detected = "";
+                if (isEdgeOne) {
+                    detected = "edgeone";
+                } else if (isCloudflare) {
+                    detected = "cloudflare";
+                } else {
+                    detected = serverHeader || "cloudflare";
                 }
 
-                serverConfig.forEach((config) => {
-                    const elements = createServerEntry(config);
-                    container.appendChild(elements.div);
-                    getServerInfo(config.url).then(server => updateEntryDisplay(elements, server));
-                });
-            });
+                sessionStorage.setItem("detected_cdn_server", detected);
+                updateCDN(detected);
+            } catch (e) {
+                // Fallback silently to default
+            }
         }
 
-        initServerInfo();
+        detectServer();
+        document.addEventListener("astro:page-load", detectServer);
+        document.addEventListener("content:replace", detectServer);
     })();
-</script> -->
+</script>

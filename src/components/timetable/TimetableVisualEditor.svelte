@@ -47,6 +47,7 @@ type NewCourseDraft = {
 	room: string;
 	day: number;
 	startNode: number;
+	step: number;
 	startWeek: number;
 	endWeek: number;
 };
@@ -176,6 +177,7 @@ function createNewCourseDraft(): NewCourseDraft {
 		room: "",
 		day: defaultDay,
 		startNode: 1,
+		step: 2,
 		startWeek: 1,
 		endWeek: maxWeek,
 	};
@@ -239,6 +241,7 @@ function updateNewCourseDraft(
 		| "room"
 		| "day"
 		| "startNode"
+		| "step"
 		| "startWeek"
 		| "endWeek",
 	value: string,
@@ -297,7 +300,7 @@ function submitCreateCourse() {
 		id: nextCourseId,
 		day: newCourseDraft.day,
 		startNode: newCourseDraft.startNode,
-		step: 2,
+		step: Math.max(1, newCourseDraft.step || 1),
 		startWeek: newCourseDraft.startWeek,
 		endWeek: newCourseDraft.endWeek,
 		teacher: newCourseDraft.teacher,
@@ -312,7 +315,7 @@ function submitCreateCourse() {
 }
 
 function updateSelectedArrangement(
-	field: "teacher" | "room" | "day" | "startNode" | "startWeek" | "endWeek",
+	field: "teacher" | "room" | "day" | "startNode" | "step" | "startWeek" | "endWeek",
 	value: string,
 ) {
 	if (selectedArrangementRef === null) {
@@ -603,18 +606,34 @@ function getEventValue(event: Event): string {
 						</select>
 					</label>
 
-					<label class="block text-xs text-white/80">
-						<span class="mb-1 block">起始节</span>
-						<input
-							type="number"
-							min="1"
-							max={String(maxNode)}
-							class="w-full rounded-lg border border-[var(--line-divider)] bg-[var(--card-bg)] px-3 py-2 text-sm"
-							value={getNumberValue(newCourseDraft.startNode)}
-							on:input={(event) =>
-								updateNewCourseDraft("startNode", getEventValue(event))}
-						/>
-					</label>
+					<div class="grid grid-cols-2 gap-2">
+						<label class="block text-xs text-white/80">
+							<span class="mb-1 block">起始节</span>
+							<input
+								type="number"
+								min="1"
+								max={String(maxNode)}
+								class="w-full rounded-lg border border-[var(--line-divider)] bg-[var(--card-bg)] px-3 py-2 text-sm"
+								value={getNumberValue(newCourseDraft.startNode)}
+								on:input={(event) =>
+									updateNewCourseDraft("startNode", getEventValue(event))}
+							/>
+						</label>
+
+						<label class="block text-xs text-white/80">
+							<span class="mb-1 block">持续节数</span>
+							<select
+								class="w-full rounded-lg border border-[var(--line-divider)] bg-[var(--card-bg)] px-3 py-2 text-sm"
+								value={getNumberValue(newCourseDraft.step)}
+								on:change={(event) => updateNewCourseDraft("step", getEventValue(event))}
+							>
+								<option value="1">1 节</option>
+								<option value="2">2 节 (大课)</option>
+								<option value="3">3 节 (3节连上)</option>
+								<option value="4">4 节 (半天)</option>
+							</select>
+						</label>
+					</div>
 
 					<div class="grid grid-cols-2 gap-2">
 						<label class="block text-xs text-white/80">
@@ -706,18 +725,34 @@ function getEventValue(event: Event): string {
 						</select>
 					</label>
 
-					<label class="block text-xs text-white/80">
-						<span class="mb-1 block">起始节</span>
-						<input
-							type="number"
-							min="1"
-							max={String(maxNode)}
-							class="w-full rounded-lg border border-[var(--line-divider)] bg-[var(--card-bg)] px-3 py-2 text-sm"
-							value={getNumberValue(selectedArrangement.startNode)}
-							on:input={(event) =>
-								updateSelectedArrangement("startNode", getEventValue(event))}
-						/>
-					</label>
+					<div class="grid grid-cols-2 gap-2">
+						<label class="block text-xs text-white/80">
+							<span class="mb-1 block">起始节</span>
+							<input
+								type="number"
+								min="1"
+								max={String(maxNode)}
+								class="w-full rounded-lg border border-[var(--line-divider)] bg-[var(--card-bg)] px-3 py-2 text-sm"
+								value={getNumberValue(selectedArrangement.startNode)}
+								on:input={(event) =>
+									updateSelectedArrangement("startNode", getEventValue(event))}
+							/>
+						</label>
+
+						<label class="block text-xs text-white/80">
+							<span class="mb-1 block">持续节数</span>
+							<select
+								class="w-full rounded-lg border border-[var(--line-divider)] bg-[var(--card-bg)] px-3 py-2 text-sm"
+								value={getNumberValue(selectedArrangement.step || 2)}
+								on:change={(event) => updateSelectedArrangement("step", getEventValue(event))}
+							>
+								<option value="1">1 节</option>
+								<option value="2">2 节 (大课)</option>
+								<option value="3">3 节 (3节连上)</option>
+								<option value="4">4 节 (半天)</option>
+							</select>
+						</label>
+					</div>
 
 					<div class="grid grid-cols-2 gap-2">
 						<label class="block text-xs text-white/80">

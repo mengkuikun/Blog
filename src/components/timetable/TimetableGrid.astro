@@ -12,127 +12,78 @@ interface Props {
 
 const { viewModel, forceVisible = false } = Astro.props;
 
-interface RowBlock {
-	startNode: number;
-	endNode: number;
-	label: string;
-	timeText: string;
-}
-
-function buildRowBlocks(vm: TimetableViewModel): RowBlock[] {
-	const meta = vm.meta;
-	const morningNum = meta?.morningNum || 0;
-	const afternoonNum = meta?.afternoonNum || 0;
-	const nightNum = meta?.nightNum || 0;
-
-	const nodeRows = vm.nodeRows;
-	const getNodeRow = (node: number) => nodeRows.find((item) => item.node === node);
-
-	if (morningNum > 0 || afternoonNum > 0 || nightNum > 0) {
-		const pairs: { startNode: number; endNode: number }[] = [];
-		const sections = [
-			{ start: 1, count: morningNum },
-			{ start: morningNum + 1, count: afternoonNum },
-			{ start: morningNum + afternoonNum + 1, count: nightNum },
-		];
-
-		for (const sec of sections) {
-			let current = sec.start;
-			const end = sec.start + sec.count - 1;
-			while (current <= end) {
-				if (current + 1 <= end) {
-					pairs.push({ startNode: current, endNode: current + 1 });
-					current += 2;
-				} else {
-					pairs.push({ startNode: current, endNode: current });
-					current += 1;
-				}
-			}
-		}
-
-		return pairs.map(({ startNode, endNode }) => {
-			const startRow = getNodeRow(startNode);
-			const endRow = getNodeRow(endNode);
-			const label =
-				startNode === endNode
-					? `第 ${startNode} 节`
-					: `第 ${startNode}-${endNode} 节`;
-			const timeText = `${startRow?.startTime ?? "--:--"} - ${endRow?.endTime ?? "--:--"}`;
-			return { startNode, endNode, label, timeText };
-		});
-	}
-
-	const maxNode = Math.max(...nodeRows.map((r) => r.node), 1);
-	const pairs: RowBlock[] = [];
-	for (let node = 1; node <= maxNode; node += 2) {
-		const startNode = node;
-		const endNode = Math.min(node + 1, maxNode);
-		const startRow = getNodeRow(startNode);
-		const endRow = getNodeRow(endNode);
-		const label =
-			startNode === endNode
-				? `第 ${startNode} 节`
-				: `第 ${startNode}-${endNode} 节`;
-		const timeText = `${startRow?.startTime ?? "--:--"} - ${endRow?.endTime ?? "--:--"}`;
-		pairs.push({ startNode, endNode, label, timeText });
-	}
-	return pairs;
-}
-
-const dayIndexes = viewModel.dayColumns.map((day) => day.day);
 const dayCount = viewModel.dayColumns.length;
-const rowBlocks = buildRowBlocks(viewModel);
-const courseMapByDayAndBlock = new Map<string, TimetableCourseView[]>();
+const nodeCount = viewModel.nodeRows.length || 12;
 
-for (const day of dayIndexes) {
-	for (const course of viewModel.coursesByDay[day] ?? []) {
-		const matchedBlock =
-			rowBlocks.find(
-				(b) => course.startNode >= b.startNode && course.startNode <= b.endNode,
-			) ?? rowBlocks[0];
-		const key = `${day}-${matchedBlock.startNode}`;
-		const list = courseMapByDayAndBlock.get(key) ?? [];
-		list.push(course);
-		courseMapByDayAndBlock.set(key, list);
-	}
-}
+const meta = viewModel.meta;
+const morningNum = meta?.morningNum ?? 5;
+const afternoonNum = meta?.afternoonNum ?? 4;
+const nightNum = meta?.nightNum ?? 3;
 ---
 
-<div class="hidden md:block w-full max-w-full overflow-hidden border-b border-white/10" style={`--day-count: ${dayCount}`} data-timetable-scale-root>
+<div class="hidden md:block w-full max-w-full overflow-hidden border-b border-white/10" style={`--day-count: ${dayCount}; --node-count: ${nodeCount};`} data-timetable-scale-root>
 	<div class="timetable-scale-viewport" data-timetable-scale-viewport>
 		<div class="timetable-scroll-content timetable-scale-content" data-timetable-scale-content>
-			<div class="timetable-header-grid border-b border-white/10">
-			<div class="px-3 py-2 text-xs text-white border-r border-white/10">节次</div>
-			{viewModel.dayColumns.map((day) => (
-				<div class="px-3 py-2 text-sm font-semibold text-white border-r last:border-r-0 border-white/10">{day.label}</div>
-			))}
-		</div>
-
-		{rowBlocks.map((block) => (
-			<div class="timetable-row-grid border-b last:border-b-0 border-white/10">
-				<div class="px-3 py-3 border-r border-white/10">
-					<p class="text-xs text-white font-medium">{block.label}</p>
-					<p class="text-[11px] text-white/80 mt-1">{block.timeText}</p>
+			<div class="timetable-grid-layout">
+				<!-- 1. Header Corner -->
+				<div class="header-corner-cell">
+					<span class="text-xs font-semibold text-white/90">节次 / 时间</span>
 				</div>
-				{viewModel.dayColumns.map((day) => {
-					const key = `${day.day}-${block.startNode}`;
-					const courses = courseMapByDayAndBlock.get(key) ?? [];
+
+				<!-- 2. Day Column Headers -->
+				{viewModel.dayColumns.map((day, dayIndex) => (
+					<div
+						class="header-day-cell"
+						style={`grid-column: ${dayIndex + 2}; grid-row: 1;`}
+					>
+						<span class="text-sm font-semibold text-white">{day.label}</span>
+					</div>
+				))}
+
+				<!-- 3. Node Row Headers (Left Y-Axis) -->
+				{viewModel.nodeRows.map((row) => {
+					const isBreakAfter = row.node === morningNum || row.node === (morningNum + afternoonNum);
 					return (
-						<div class="px-2 py-2 border-r last:border-r-0 border-white/10 align-top min-h-[88px]">
-							{courses.length > 0 ? (
-								<div class="space-y-2">
-									{courses.map((course) => (
-										<TimetableCourseCard course={course} compact={true} />
-									))}
-								</div>
-							) : (
-								<div class="h-full flex items-center justify-center text-[11px] text-white/60">—</div>
-							)}
+						<div
+							class:list={["node-header-cell", { "period-divider-bottom": isBreakAfter }]}
+							style={`grid-column: 1; grid-row: ${row.node + 1};`}
+						>
+							<span class="text-xs font-bold text-white leading-tight">第 {row.node} 节</span>
+							<span class="text-[10px] text-white/70 mt-0.5 leading-none">{row.startTime}</span>
+							<span class="text-[10px] text-white/45 leading-none">{row.endTime}</span>
 						</div>
 					);
 				})}
+
+				<!-- 4. Background Grid Slots (Grid lines for empty spaces) -->
+				{viewModel.nodeRows.map((row) => {
+					const isBreakAfter = row.node === morningNum || row.node === (morningNum + afternoonNum);
+					return viewModel.dayColumns.map((_, dayIndex) => (
+						<div
+							class:list={["grid-slot-cell", { "period-divider-bottom": isBreakAfter }]}
+							style={`grid-column: ${dayIndex + 2}; grid-row: ${row.node + 1};`}
+						/>
+					));
+				})}
+
+				<!-- 5. Course Cards spanning across their actual durationNodes -->
+				{viewModel.dayColumns.map((day, dayIndex) => {
+					const courses = viewModel.coursesByDay[day.day] ?? [];
+					return courses.map((course) => {
+						const col = dayIndex + 2;
+						const rowStart = course.startNode + 1;
+						const span = Math.max(1, course.durationNodes);
+						return (
+							<div
+								class="course-grid-item"
+								style={`grid-column: ${col}; grid-row: ${rowStart} / span ${span};`}
+							>
+								<TimetableCourseCard course={course} compact={true} />
+							</div>
+						);
+					});
+				})}
 			</div>
-		))}
 		</div>
 	</div>
 </div>
@@ -192,12 +143,63 @@ for (const day of dayIndexes) {
 	}
 
 	.timetable-scroll-content {
-		width: max(900px, calc(120px + var(--day-count) * 180px));
+		width: max(960px, calc(90px + var(--day-count) * 155px));
 	}
 
-	.timetable-header-grid,
-	.timetable-row-grid {
+	.timetable-grid-layout {
 		display: grid;
-		grid-template-columns: 120px repeat(var(--day-count), minmax(180px, 1fr));
+		grid-template-columns: 88px repeat(var(--day-count), minmax(135px, 1fr));
+		grid-template-rows: 42px repeat(var(--node-count), 54px);
+		border-left: 1px solid rgba(255, 255, 255, 0.1);
+		border-top: 1px solid rgba(255, 255, 255, 0.1);
+		position: relative;
+	}
+
+	.header-corner-cell {
+		grid-column: 1;
+		grid-row: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-right: 1px solid rgba(255, 255, 255, 0.15);
+		border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+		background: rgba(255, 255, 255, 0.04);
+	}
+
+	.header-day-cell {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-right: 1px solid rgba(255, 255, 255, 0.1);
+		border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+		background: rgba(255, 255, 255, 0.04);
+	}
+
+	.node-header-cell {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		border-right: 1px solid rgba(255, 255, 255, 0.15);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		background: rgba(255, 255, 255, 0.02);
+		user-select: none;
+	}
+
+	.grid-slot-cell {
+		border-right: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		pointer-events: none;
+	}
+
+	.period-divider-bottom {
+		border-bottom: 2px solid rgba(var(--primary-rgb, 255, 255, 255), 0.35) !important;
+	}
+
+	.course-grid-item {
+		padding: 3px;
+		z-index: 10;
+		height: 100%;
+		box-sizing: border-box;
 	}
 </style>

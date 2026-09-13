@@ -180,7 +180,7 @@ export function buildTimetableViewModel(
 
 		const courseDef = courseMap.get(arrangement.id);
 		const courseName = courseDef?.courseName ?? `课程 #${arrangement.id}`;
-		const color = buildCourseColor(courseName, arrangement.id);
+		const color = courseDef?.color || buildCourseColor(courseName, arrangement.id);
 		coursesByDay[arrangement.day].push(
 			toCourseView(arrangement, courseName, color, nodeRows),
 		);

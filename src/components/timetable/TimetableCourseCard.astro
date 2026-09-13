@@ -11,14 +11,23 @@ const { course, compact = false, showTime = false } = Astro.props;
 const borderColor = course.color || "#6b7280";
 ---
 
-<article class:list={["course-card card-interactive rounded-lg", compact ? "p-2.5" : "p-3"]} style={`--course-color: ${borderColor}`}>
-	<div class="flex items-start justify-between gap-2">
-		<h3 class:list={["font-semibold text-white leading-tight", compact ? "text-xs" : "text-sm"]}>{course.courseName}</h3>
-		<span class="text-[10px] text-white/80 whitespace-nowrap">{course.startWeek}-{course.endWeek}周</span>
+<article class:list={["course-card card-interactive rounded-lg h-full flex flex-col justify-between overflow-hidden", compact ? "p-2" : "p-3"]} style={`--course-color: ${borderColor}`}>
+	<div>
+		<div class="flex items-center justify-between gap-1 mb-1">
+			<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold leading-none" style={`background: color-mix(in oklab, var(--course-color) 25%, transparent); color: var(--course-color);`}>
+				{course.nodeText}
+			</span>
+			<span class="text-[10px] text-white/75 whitespace-nowrap">{course.startWeek}-{course.endWeek}周</span>
+		</div>
+		<h3 class:list={["font-bold text-white leading-snug line-clamp-2", compact ? "text-xs" : "text-sm"]}>{course.courseName}</h3>
 	</div>
-	{showTime && <p class:list={["text-white/80 mt-1", compact ? "text-[11px]" : "text-xs"]}>时间：{course.timeText}</p>}
-	<p class:list={["text-white/80", showTime ? "mt-0.5" : "mt-1", compact ? "text-[11px]" : "text-xs"]}>教室：{course.room}</p>
-	<p class:list={["text-white/80 mt-0.5", compact ? "text-[11px]" : "text-xs"]}>教师：{course.teacher}</p>
+	<div class:list={["space-y-0.5 text-white/80", compact ? "mt-1 text-[11px]" : "mt-2 text-xs"]}>
+		{(showTime || course.durationNodes >= 3) && (
+			<p class="line-clamp-1"><span class="opacity-70">时间：</span>{course.timeText}</p>
+		)}
+		<p class="line-clamp-1"><span class="opacity-70">教室：</span>{course.room}</p>
+		<p class="line-clamp-1"><span class="opacity-70">教师：</span>{course.teacher}</p>
+	</div>
 </article>
 
 <style>

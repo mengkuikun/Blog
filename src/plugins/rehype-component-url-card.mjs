@@ -50,37 +50,31 @@ export function UrlCardComponent(properties, children) {
 		`script#${cardUuid}-script`,
 		{ type: "text/javascript", defer: true },
 		`
-      fetch('https://icon.2x.nz/?url=${url}').then(response => response.json()).then(meta => {
-        if (meta && meta.url) {
-            document.getElementById('${cardUuid}-title').innerText = meta.title || "${url}";
-            document.getElementById('${cardUuid}-description').innerText = meta.description || "No description available";
-            
-            const faviconEl = document.getElementById('${cardUuid}-favicon');
-            if (meta.favicon) {
-                faviconEl.style.backgroundImage = 'url(' + meta.favicon + ')';
-                faviconEl.style.backgroundColor = 'transparent';
-            } else {
-                 faviconEl.style.display = 'none';
-            }
+      (function() {
+        try {
+          var u = new URL("${url}");
+          var domain = u.hostname;
+          var titleEl = document.getElementById('${cardUuid}-title');
+          var descEl = document.getElementById('${cardUuid}-description');
+          var faviconEl = document.getElementById('${cardUuid}-favicon');
+          var imageEl = document.getElementById('${cardUuid}-image');
+          var containerEl = document.getElementById('${cardUuid}-container');
+          var cardEl = document.getElementById('${cardUuid}-card');
 
-            const imageEl = document.getElementById('${cardUuid}-image');
-            // The new API currently does not seem to return a large image preview (meta.image)
-            // So we default to hiding it to match the new structure
-            imageEl.style.display = 'none';
-            document.getElementById('${cardUuid}-container').classList.add('no-image');
-
-            document.getElementById('${cardUuid}-card').classList.remove("fetch-waiting");
-            console.log("[URL-CARD] Loaded card for ${url} | ${cardUuid}.")
-        } else {
-            throw new Error('API returned invalid data');
+          if (titleEl) titleEl.innerText = domain;
+          if (descEl) descEl.innerText = "${url}";
+          if (faviconEl) {
+            faviconEl.style.backgroundImage = 'url(https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=64)';
+            faviconEl.style.backgroundColor = 'transparent';
+          }
+          if (imageEl) imageEl.style.display = 'none';
+          if (containerEl) containerEl.classList.add('no-image');
+          if (cardEl) cardEl.classList.remove('fetch-waiting');
+        } catch (e) {
+          var card = document.getElementById('${cardUuid}-card');
+          if (card) card.classList.remove('fetch-waiting');
         }
-      }).catch(err => {
-        const c = document.getElementById('${cardUuid}-card');
-        c?.classList.add("fetch-error");
-        document.getElementById('${cardUuid}-title').innerText = "Error loading preview";
-        document.getElementById('${cardUuid}-description').innerText = "Failed to fetch metadata for ${url}";
-        console.warn("[URL-CARD] (Error) Loading card for ${url} | ${cardUuid}.", err)
-      })
+      })();
     `,
 	);
 

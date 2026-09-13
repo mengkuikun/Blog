@@ -1,3 +1,7 @@
+---
+import { umamiConfig } from "@/config";
+---
+
 <script type="text/javascript">
 (function () {
 	const load = () => {
@@ -132,8 +136,15 @@
 })();
 </script>
 
-<script data-cookie-consent="strictly-necessary" defer src="https://t.2x.nz/tracker.js"></script>
-<script type="text/plain" data-cookie-consent="strictly-necessary" defer src="https://cloud.umami.is/script.js" data-website-id="2ab39a76-520f-4482-9185-13f2f43ff73a"></script>
+{umamiConfig.enable && umamiConfig.websiteId && (
+	<script
+		type="text/plain"
+		data-cookie-consent="strictly-necessary"
+		defer
+		src={`${umamiConfig.baseUrl.replace(/\/$/, "")}/script.js`}
+		data-website-id={umamiConfig.websiteId}
+	></script>
+)}
 <script data-cookie-consent="strictly-necessary" defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "15fe148e91b34f10a15652e1a74ab26c"}'></script>
 
 <script>
@@ -288,7 +299,7 @@ var $buoop = {
 
 function $buo_f() {
 	var e = document.createElement("script");
-	e.src = "//browser-update.org/update.min.js";
+	e.src = "https://browser-update.org/update.min.js";
 	document.body.appendChild(e);
 }
 

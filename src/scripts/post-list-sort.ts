@@ -40,11 +40,24 @@ class PostListManager {
 	}
 
 	private async loadViewsData() {
+		// TODO: 待办：批量访问量数据源接口。未配置或留空时默认全站与文章访问量为 0，不发起外部网络请求。
+		// 如果后续自建了批量访问量接口，在此填入您的 API 地址，例如：'https://api.yourdomain.com/batch'
+		const BATCH_VIEWS_API_URL = "";
+		if (!BATCH_VIEWS_API_URL) {
+			this.posts.forEach((post) => {
+				this.viewsData.set(post.id, 0);
+			});
+			this.viewsLoaded = true;
+			(window as any).__VIEWS_FETCHED__ = true;
+			(window as any).__SITE_VIEWS_LOADED__ = true;
+			return;
+		}
+
 		// 批量获取所有文章的访问量（包含全站访问量）
 		try {
 			const pathnames = ["/", ...this.posts.map((post) => `/posts/${post.id}/`)];
 			
-			const res = await fetch("https://t.2x.nz/batch", {
+			const res = await fetch(BATCH_VIEWS_API_URL, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

@@ -325,10 +325,8 @@ const jsonLd = [
     function setupRandomCovers() {
         const covers = document.querySelectorAll('.post-cover-random');
         if (!covers.length) return;
-        const max = 1176;
         for (const img of covers) {
-            const n = Math.floor(Math.random() * max) + 1;
-            img.src = `https://p.2x.nz/ri/h/${n}.webp`;
+            img.src = '/avatar.jpg';
         }
     }
 

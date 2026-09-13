@@ -68,6 +68,7 @@ export type ProfileConfig = {
 	avatar?: string;
 	name: string;
 	bio?: string;
+	bilibiliLiveRoom?: string;
 	links: {
 		name: string;
 		url: string;
@@ -90,6 +91,7 @@ export type ImageFallbackConfig = {
 export type UmamiConfig = {
 	enable: boolean;
 	baseUrl: string;
+	websiteId?: string;
 	shareId: string;
 	timezone: string;
 };

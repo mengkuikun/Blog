@@ -14,11 +14,11 @@ const payloadText = encodeURIComponent(
 );
 ---
 
-	<div class:list={["border border-white/10 bg-[var(--card-bg)] px-4 py-3 opacity-0 transition-opacity duration-300", className]} data-live-status-root data-live-payload={payloadText}>
-	<p data-live-status class="text-sm font-semibold text-white"></p>
+<div class:list={["rounded-[var(--radius-large)] border border-white/10 bg-[var(--card-bg)] px-4 py-3", className]} data-live-status-root data-live-payload={payloadText}>
+	<p data-live-status class="text-sm font-semibold text-white">状态计算中...</p>
 	<p class="mt-1 text-sm text-white/80">
 		<span>下一堂课：</span>
-		<span data-live-next-detail class="font-medium"></span>
+		<span data-live-next-detail class="font-medium">--</span>
 		<span data-live-next-tail></span>
 	</p>
 </div>
@@ -142,9 +142,6 @@ const payloadText = encodeURIComponent(
 		nextDetailElement.textContent = state.nextDetail;
 		nextTailElement.textContent = state.nextTail;
 		nextDetailElement.style.color = state.nextColor || "";
-		
-		// 显示组件（数据已加载完成）
-		root.style.opacity = "1";
 	}
 
 	function refreshLiveStatusWidgets() {
@@ -157,7 +154,14 @@ const payloadText = encodeURIComponent(
 
 	function setupLiveStatusWidgets() {
 		refreshLiveStatusWidgets();
-		window.addEventListener("focus", refreshLiveStatusWidgets);
+
+		if (!window.__liveStatusWidgetsBound) {
+			window.__liveStatusWidgetsBound = true;
+			document.addEventListener("astro:page-load", refreshLiveStatusWidgets);
+			document.addEventListener("astro:after-swap", refreshLiveStatusWidgets);
+			document.addEventListener("swup:contentReplaced", refreshLiveStatusWidgets);
+			window.addEventListener("focus", refreshLiveStatusWidgets);
+		}
 
 		const timerKey = "__liveStatusWidgetsTimer";
 		if (window[timerKey]) {
@@ -166,10 +170,9 @@ const payloadText = encodeURIComponent(
 		window[timerKey] = window.setInterval(refreshLiveStatusWidgets, 30 * 1000);
 	}
 
+	setupLiveStatusWidgets();
 	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", setupLiveStatusWidgets, { once: true });
-	} else {
-		setupLiveStatusWidgets();
 	}
 </script>
 

@@ -1,4 +1,4 @@
-﻿---
+---
 import type { TimetableViewModel } from "@/types/timetable";
 import PageCardHeader from "@components/misc/PageCardHeader.astro";
 import LiveTimetableStatus from "@components/timetable/LiveTimetableStatus.astro";
@@ -20,12 +20,30 @@ const liveStatusPayload = {
 };
 ---
 
-<div class="p-6 md:p-8 border-b border-white/10">
+<div class="p-6 md:p-8 border-b border-white/10" data-timetable-content-root>
+	<!-- 0ms 同步预检脚本：首帧渲染前精准根据 localStorage 挂载状态，从根源消灭任何进入页面或跳转时的闪现与重绘 -->
+	<script is:inline>
+		(function () {
+			try {
+				var saved = localStorage.getItem("timetable_focus_mode_active");
+				// 默认开启聚焦模式；仅当用户明确保存为 "false" 时才为全部时段
+				var isFocus = saved !== "false";
+				var root = document.currentScript.parentElement;
+				if (isFocus) {
+					root.classList.add("is-focus-mode");
+				} else {
+					root.classList.remove("is-focus-mode");
+				}
+			} catch (e) {}
+		})();
+	</script>
+
 	<PageCardHeader title={viewModel.tableName} icon="material-symbols:calendar-month" pathname="/timetable/">
 		<div slot="title-extra" class="text-sm font-medium text-white/80">共 {viewModel.maxWeek} 周</div>
 	</PageCardHeader>
 
-	<div class="flex flex-wrap items-center gap-3 mb-5 text-sm">
+	<!-- 原件位置 1：周次导航栏 + 右侧切换按钮（文案净化，无多余括号） -->
+	<div class="flex flex-wrap items-center justify-between gap-3 mb-5 text-sm">
 		<div class="inline-flex items-center gap-1">
 			<a
 				href={`/timetable/${Math.max(1, viewModel.currentWeek - 1)}/`}
@@ -50,15 +68,70 @@ const liveStatusPayload = {
 			</a>
 			{isCurrentWeek && <span class="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-sm font-medium text-emerald-200 leading-none">当前周</span>}
 		</div>
+
+		<button
+			id="timetable-focus-toggle"
+			type="button"
+			class="btn-regular h-9 px-3 rounded-lg flex items-center gap-1.5 font-medium text-xs text-white/90 transition-all hover:text-white"
+			title="切换聚焦有课模式与全部时段模式"
+			aria-pressed="false"
+		>
+			<Icon name="material-symbols:filter-alt-outline" class="text-[1.1rem]" />
+			<span id="timetable-focus-label">聚焦有课</span>
+		</button>
 	</div>
 
+	<!-- 原件位置 2：LiveTimetableStatus（原原本本保留在此处） -->
 	<LiveTimetableStatus payload={liveStatusPayload} class="mb-4" />
 
+	<!-- 原件位置 3：TimetableVisualEditor（包含编辑课表按钮与原件提示框，原原本本保留在此处） -->
 	<TimetableVisualEditor client:load viewModel={viewModel} baselineText={baselineText} />
 
+	<!-- 原件位置 4：提示段落 -->
 	<p class="text-xs text-white/80 mb-4">提示：周次切换后将展示该周实际有课的安排，多周课程会在对应周自动出现。</p>
 
+	<!-- 原件位置 5：课表网格与移动端列表 -->
 	<TimetableGrid viewModel={viewModel} />
 	<TimetableDayList viewModel={viewModel} />
 </div>
 
+<script is:inline>
+	function initTimetableFocusToggle() {
+		const btn = document.getElementById("timetable-focus-toggle");
+		const label = document.getElementById("timetable-focus-label");
+		const root = document.querySelector("[data-timetable-content-root]");
+		if (!btn || !root) return;
+
+		const STORAGE_KEY = "timetable_focus_mode_active";
+		const savedFocus = localStorage.getItem(STORAGE_KEY);
+		let isFocus = savedFocus !== "false";
+
+		function applyFocusState(active) {
+			if (active) {
+				root.classList.add("is-focus-mode");
+				btn.classList.add("border-[var(--primary)]", "bg-[var(--primary)]/20", "text-[var(--primary)]");
+				btn.setAttribute("aria-pressed", "true");
+				if (label) label.textContent = "显示全部时段";
+			} else {
+				root.classList.remove("is-focus-mode");
+				btn.classList.remove("border-[var(--primary)]", "bg-[var(--primary)]/20", "text-[var(--primary)]");
+				btn.setAttribute("aria-pressed", "false");
+				if (label) label.textContent = "聚焦有课";
+			}
+		}
+
+		applyFocusState(isFocus);
+
+		btn.addEventListener("click", () => {
+			isFocus = !isFocus;
+			localStorage.setItem(STORAGE_KEY, String(isFocus));
+			applyFocusState(isFocus);
+		});
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initTimetableFocusToggle);
+	} else {
+		initTimetableFocusToggle();
+	}
+</script>

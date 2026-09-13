@@ -12,6 +12,7 @@ interface Props {
 
 const { viewModel, forceVisible = false } = Astro.props;
 
+// 全景模式基础数据
 const dayCount = viewModel.dayColumns.length;
 const nodeCount = viewModel.nodeRows.length || 12;
 
@@ -19,145 +20,288 @@ const meta = viewModel.meta;
 const morningNum = meta?.morningNum ?? 5;
 const afternoonNum = meta?.afternoonNum ?? 4;
 const nightNum = meta?.nightNum ?? 3;
+
+// 统计当前周所有有课的节次
+const activeNodeSet = new Set<number>();
+let totalCourseCount = 0;
+for (const day of viewModel.dayColumns) {
+	const courses = viewModel.coursesByDay[day.day] ?? [];
+	totalCourseCount += courses.length;
+	for (const course of courses) {
+		for (let n = course.startNode; n <= course.endNode; n++) {
+			activeNodeSet.add(n);
+		}
+	}
+}
+
+// 聚焦模式：仅保留有课的日期列（过滤整天无课的空星期）
+const focusDayColumns = viewModel.dayColumns.filter(
+	(day) => (viewModel.coursesByDay[day.day] ?? []).length > 0,
+);
+
+// 聚焦模式：仅保留有课的节次行（过滤全周无课的空节次）
+const focusNodeRows = viewModel.nodeRows.filter((row) => activeNodeSet.has(row.node));
+
+// 隐藏指标统计
+const hiddenDayCount = dayCount - focusDayColumns.length;
+const hiddenNodeCount = nodeCount - focusNodeRows.length;
+
+// 聚焦网格映射：星期 -> 列索引（从 2 开始，1 为时间轴）
+const focusDayColMap = new Map<number, number>();
+focusDayColumns.forEach((day, idx) => {
+	focusDayColMap.set(day.day, idx + 2);
+});
+
+// 聚焦网格映射：节次 -> 行索引（从 2 开始，1 为星期表头）
+const focusNodeRowMap = new Map<number, number>();
+focusNodeRows.forEach((row, idx) => {
+	focusNodeRowMap.set(row.node, idx + 2);
+});
 ---
 
-<div class="hidden md:block w-full max-w-full overflow-hidden border-b border-white/10" style={`--day-count: ${dayCount}; --node-count: ${nodeCount};`} data-timetable-scale-root>
-	<div class="timetable-scale-viewport" data-timetable-scale-viewport>
-		<div class="timetable-scroll-content timetable-scale-content" data-timetable-scale-content>
-			<div class="timetable-grid-layout">
-				<!-- 1. Header Corner -->
-				<div class="header-corner-cell">
-					<span class="text-xs font-semibold text-white/90">节次 / 时间</span>
+<div class="hidden md:block w-full max-w-full overflow-x-auto border-b border-white/10 timetable-grid-container">
+	<!-- 视图 1：聚焦有课视图（真正折叠空占位格，大卡片高亮呈现） -->
+	<div class="timetable-focus-view">
+		{totalCourseCount === 0 ? (
+			<div class="focus-empty-notice p-8 text-center rounded-xl bg-white/5 border border-white/10 my-4">
+				<div class="text-3xl mb-2">🏖️</div>
+				<div class="text-base font-semibold text-white mb-1">本周暂无课程安排</div>
+				<div class="text-xs text-white/60">可切换上方周次查看其他教学周，或点击“显示全部时段”查看完整课表矩阵</div>
+			</div>
+		) : (
+			<div>
+				<div class="focus-info-banner flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 mb-3 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/25 text-xs text-white/90">
+					<div class="flex items-center gap-1.5 font-medium">
+						<span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+						<span>
+							已隐藏 {hiddenDayCount > 0 ? `${hiddenDayCount} 个空闲日期` : ''}{hiddenDayCount > 0 && hiddenNodeCount > 0 ? '与' : ''}{hiddenNodeCount > 0 ? `${hiddenNodeCount} 个无课节次` : ''}，重点突出本周 {totalCourseCount} 门课程
+						</span>
+					</div>
+					<span class="text-white/60 text-[11px] hidden sm:inline">卡片已自动舒展放大</span>
 				</div>
 
-				<!-- 2. Day Column Headers -->
-				{viewModel.dayColumns.map((day, dayIndex) => (
-					<div
-						class="header-day-cell"
-						style={`grid-column: ${dayIndex + 2}; grid-row: 1;`}
-					>
-						<span class="text-sm font-semibold text-white">{day.label}</span>
+				<div
+					class="timetable-focus-grid"
+					style={`grid-template-columns: 88px repeat(${Math.max(1, focusDayColumns.length)}, minmax(0, 1fr)); grid-template-rows: 44px repeat(${Math.max(1, focusNodeRows.length)}, minmax(68px, auto));`}
+				>
+					<!-- 聚焦模式：表头角落 -->
+					<div class="header-corner-cell focus-corner-cell" style="grid-column: 1; grid-row: 1;">
+						<span class="text-xs font-semibold text-white/90">节次 / 时间</span>
 					</div>
-				))}
 
-				<!-- 3. Node Row Headers (Left Y-Axis) -->
-				{viewModel.nodeRows.map((row) => {
-					const isBreakAfter = row.node === morningNum || row.node === (morningNum + afternoonNum);
+					<!-- 聚焦模式：有课星期表头 -->
+					{focusDayColumns.map((day, idx) => (
+						<div
+							class="header-day-cell focus-day-header"
+							style={`grid-column: ${idx + 2}; grid-row: 1;`}
+						>
+							<span class="text-sm font-bold text-white">{day.label}</span>
+							<span class="text-[10px] text-emerald-300 font-medium ml-1.5 px-1.5 py-0.5 rounded bg-emerald-500/20">
+								{(viewModel.coursesByDay[day.day] ?? []).length} 门课
+							</span>
+						</div>
+					))}
+
+					<!-- 聚焦模式：有课节次时间轴 -->
+					{focusNodeRows.map((row, idx) => (
+						<div
+							class="node-header-cell focus-node-header"
+							style={`grid-column: 1; grid-row: ${idx + 2};`}
+						>
+							<span class="text-xs font-bold text-[var(--primary,#60a5fa)] leading-tight">第 {row.node} 节</span>
+							<span class="text-[10px] text-white/80 mt-1 leading-none">{row.startTime}</span>
+							<span class="text-[10px] text-white/45 mt-0.5 leading-none">{row.endTime}</span>
+						</div>
+					))}
+
+					<!-- 聚焦模式：留白辅助槽（半透明微弱线，不干扰视觉） -->
+					{focusNodeRows.map((_, rowIdx) => (
+						focusDayColumns.map((_, colIdx) => (
+							<div
+								class="focus-slot-cell"
+								style={`grid-column: ${colIdx + 2}; grid-row: ${rowIdx + 2};`}
+							/>
+						))
+					))}
+
+					<!-- 聚焦模式：课程卡片（大号模式展开，清晰呈现时间与详情） -->
+					{focusDayColumns.map((day) => {
+						const col = focusDayColMap.get(day.day)!;
+						const courses = viewModel.coursesByDay[day.day] ?? [];
+						return courses.map((course) => {
+							const rowStart = focusNodeRowMap.get(course.startNode);
+							const rowEnd = focusNodeRowMap.get(course.endNode);
+							if (!rowStart || !rowEnd) return null;
+							const span = rowEnd - rowStart + 1;
+							return (
+								<div
+									class="focus-course-item"
+									style={`grid-column: ${col}; grid-row: ${rowStart} / span ${span};`}
+								>
+									<TimetableCourseCard course={course} compact={false} showTime={true} />
+								</div>
+							);
+						});
+					})}
+				</div>
+			</div>
+		)}
+	</div>
+
+	<!-- 视图 2：完整全景视图（CSS 原生自适应流式网格，周一到周日 100% 完整显示，永不被裁切，彻底消灭异步延迟缩放与闪烁） -->
+	<div class="timetable-full-view">
+		<div
+			class="timetable-grid-layout"
+			style={`grid-template-columns: 74px repeat(${dayCount}, minmax(0, 1fr)); grid-template-rows: 42px repeat(${nodeCount}, 54px);`}
+		>
+			<!-- 1. Header Corner -->
+			<div class="header-corner-cell" style="grid-column: 1; grid-row: 1;">
+				<span class="text-xs font-semibold text-white/90">节次 / 时间</span>
+			</div>
+
+			<!-- 2. Day Column Headers -->
+			{viewModel.dayColumns.map((day, dayIndex) => (
+				<div
+					class="header-day-cell"
+					style={`grid-column: ${dayIndex + 2}; grid-row: 1;`}
+				>
+					<span class="text-sm font-semibold text-white">{day.label}</span>
+				</div>
+			))}
+
+			<!-- 3. Node Row Headers (Left Y-Axis) -->
+			{viewModel.nodeRows.map((row) => {
+				const isBreakAfter = row.node === morningNum || row.node === (morningNum + afternoonNum);
+				const hasCourse = activeNodeSet.has(row.node);
+				return (
+					<div
+						class:list={[
+							"node-header-cell",
+							{
+								"period-divider-bottom": isBreakAfter,
+								"is-active-node": hasCourse,
+								"is-empty-node": !hasCourse,
+							},
+						]}
+						data-has-course={hasCourse ? "true" : "false"}
+						style={`grid-column: 1; grid-row: ${row.node + 1};`}
+					>
+						<span class="text-xs font-bold text-white leading-tight">第 {row.node} 节</span>
+						<span class="text-[10px] text-white/70 mt-0.5 leading-none">{row.startTime}</span>
+						<span class="text-[10px] text-white/45 leading-none">{row.endTime}</span>
+					</div>
+				);
+			})}
+
+			<!-- 4. Background Grid Slots (Grid lines for empty spaces) -->
+			{viewModel.nodeRows.map((row) => {
+				const isBreakAfter = row.node === morningNum || row.node === (morningNum + afternoonNum);
+				return viewModel.dayColumns.map((_, dayIndex) => (
+					<div
+						class:list={["grid-slot-cell", { "period-divider-bottom": isBreakAfter }]}
+						style={`grid-column: ${dayIndex + 2}; grid-row: ${row.node + 1};`}
+					/>
+				));
+			})}
+
+			<!-- 5. Course Cards spanning across their actual durationNodes -->
+			{viewModel.dayColumns.map((day, dayIndex) => {
+				const courses = viewModel.coursesByDay[day.day] ?? [];
+				return courses.map((course) => {
+					const col = dayIndex + 2;
+					const rowStart = course.startNode + 1;
+					const span = Math.max(1, course.durationNodes);
 					return (
 						<div
-							class:list={["node-header-cell", { "period-divider-bottom": isBreakAfter }]}
-							style={`grid-column: 1; grid-row: ${row.node + 1};`}
+							class="course-grid-item"
+							style={`grid-column: ${col}; grid-row: ${rowStart} / span ${span};`}
 						>
-							<span class="text-xs font-bold text-white leading-tight">第 {row.node} 节</span>
-							<span class="text-[10px] text-white/70 mt-0.5 leading-none">{row.startTime}</span>
-							<span class="text-[10px] text-white/45 leading-none">{row.endTime}</span>
+							<TimetableCourseCard course={course} compact={true} />
 						</div>
 					);
-				})}
-
-				<!-- 4. Background Grid Slots (Grid lines for empty spaces) -->
-				{viewModel.nodeRows.map((row) => {
-					const isBreakAfter = row.node === morningNum || row.node === (morningNum + afternoonNum);
-					return viewModel.dayColumns.map((_, dayIndex) => (
-						<div
-							class:list={["grid-slot-cell", { "period-divider-bottom": isBreakAfter }]}
-							style={`grid-column: ${dayIndex + 2}; grid-row: ${row.node + 1};`}
-						/>
-					));
-				})}
-
-				<!-- 5. Course Cards spanning across their actual durationNodes -->
-				{viewModel.dayColumns.map((day, dayIndex) => {
-					const courses = viewModel.coursesByDay[day.day] ?? [];
-					return courses.map((course) => {
-						const col = dayIndex + 2;
-						const rowStart = course.startNode + 1;
-						const span = Math.max(1, course.durationNodes);
-						return (
-							<div
-								class="course-grid-item"
-								style={`grid-column: ${col}; grid-row: ${rowStart} / span ${span};`}
-							>
-								<TimetableCourseCard course={course} compact={true} />
-							</div>
-						);
-					});
-				})}
-			</div>
+				});
+			})}
 		</div>
 	</div>
 </div>
 
-<script is:inline>
-	function setupTimetableGridScale() {
-		const roots = document.querySelectorAll("[data-timetable-scale-root]");
-		for (const root of roots) {
-			if (!(root instanceof HTMLElement)) continue;
-			const viewport = root.querySelector("[data-timetable-scale-viewport]");
-			const content = root.querySelector("[data-timetable-scale-content]");
-			if (!(viewport instanceof HTMLElement) || !(content instanceof HTMLElement)) continue;
-
-			content.style.setProperty("--timetable-scale", "1");
-			viewport.style.setProperty("--timetable-scaled-height", "auto");
-
-			const viewportWidth = viewport.clientWidth;
-			const contentWidth = content.scrollWidth;
-			if (viewportWidth <= 0 || contentWidth <= 0) continue;
-
-			const scale = Math.min(1, viewportWidth / contentWidth);
-			content.style.setProperty("--timetable-scale", String(scale));
-			viewport.style.setProperty("--timetable-scaled-height", `${Math.ceil(content.scrollHeight * scale)}px`);
-		}
+<style is:global>
+	/* === 聚焦模式切换控制（全局规则，确保无视 scoped 干扰） === */
+	.is-focus-mode .timetable-full-view {
+		display: none !important;
 	}
 
-	const runSetupTimetableGridScale = () => {
-		requestAnimationFrame(setupTimetableGridScale);
-	};
-
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", runSetupTimetableGridScale, { once: true });
-	} else {
-		runSetupTimetableGridScale();
+	:not(.is-focus-mode) .timetable-focus-view {
+		display: none !important;
 	}
 
-	const handlerKey = "__timetableGridScaleHandler";
-	const previousHandler = window[handlerKey];
-	if (typeof previousHandler === "function") {
-		window.removeEventListener("resize", previousHandler);
+	.is-focus-mode .timetable-focus-view {
+		display: block !important;
 	}
-	window[handlerKey] = runSetupTimetableGridScale;
-	window.addEventListener("resize", runSetupTimetableGridScale);
-</script>
+</style>
 
 <style>
-	.timetable-scale-viewport {
+	/* === 聚焦视图样式 === */
+	.timetable-focus-view {
 		width: 100%;
-		height: var(--timetable-scaled-height, auto);
+		margin-bottom: 0.5rem;
+	}
+
+	.timetable-focus-grid {
+		display: grid;
+		border-left: 1px solid rgba(255, 255, 255, 0.12);
+		border-top: 1px solid rgba(255, 255, 255, 0.12);
+		width: 100%;
+		position: relative;
+		border-radius: 8px;
 		overflow: hidden;
 	}
 
-	.timetable-scale-content {
-		--timetable-scale: 1;
-		transform-origin: top left;
-		transform: scale(var(--timetable-scale));
+	.focus-corner-cell {
+		background: rgba(255, 255, 255, 0.05);
 	}
 
-	.timetable-scroll-content {
-		width: max(960px, calc(90px + var(--day-count) * 155px));
+	.focus-day-header {
+		background: rgba(255, 255, 255, 0.05);
+		border-right: 1px solid rgba(255, 255, 255, 0.1);
+		border-bottom: 2px solid rgba(var(--primary-rgb, 59, 130, 246), 0.5);
+	}
+
+	.focus-node-header {
+		background: rgba(var(--primary-rgb, 59, 130, 246), 0.06);
+		border-right: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.35);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.focus-slot-cell {
+		border-right: 1px dashed rgba(255, 255, 255, 0.06);
+		border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+		pointer-events: none;
+	}
+
+	.focus-course-item {
+		padding: 4px;
+		z-index: 10;
+		height: 100%;
+		box-sizing: border-box;
+	}
+
+	/* === 全景视图样式（纯 CSS 自适应，首屏 0 延迟，永不发生异步截断） === */
+	.timetable-full-view {
+		width: 100%;
 	}
 
 	.timetable-grid-layout {
 		display: grid;
-		grid-template-columns: 88px repeat(var(--day-count), minmax(135px, 1fr));
-		grid-template-rows: 42px repeat(var(--node-count), 54px);
+		width: 100%;
 		border-left: 1px solid rgba(255, 255, 255, 0.1);
 		border-top: 1px solid rgba(255, 255, 255, 0.1);
 		position: relative;
+		border-radius: 8px;
+		overflow: hidden;
 	}
 
 	.header-corner-cell {
-		grid-column: 1;
-		grid-row: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -190,6 +334,7 @@ const nightNum = meta?.nightNum ?? 3;
 		border-right: 1px solid rgba(255, 255, 255, 0.08);
 		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		pointer-events: none;
+		transition: all 0.25s ease;
 	}
 
 	.period-divider-bottom {
@@ -201,5 +346,6 @@ const nightNum = meta?.nightNum ?? 3;
 		z-index: 10;
 		height: 100%;
 		box-sizing: border-box;
+		transition: all 0.25s ease;
 	}
 </style>

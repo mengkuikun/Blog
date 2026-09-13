@@ -97,7 +97,7 @@ export const navBarConfig: NavBarConfig = {
 		},
 		{
 			name: "统计",
-			url: "https://cloud.umami.is/share/mmqrQ14OYNe9p9gm",
+			url: "https://cloud.umami.is", // TODO: 待办：如果您开启了 Umami 仪表盘公开分享，可修改为您自己的分享链接
 			external: true,
 			icon: "material-symbols:table-chart",
 		},
@@ -120,6 +120,7 @@ export const profileConfig: ProfileConfig = {
 	avatar: "/avatar.jpg", // Relative to the /public directory if it starts with '/'
 	name: "夢酷",
 	bio: "Protect What You Love.",
+	bilibiliLiveRoom: "", // TODO: 待办：填入您的 B站直播间房间号（如平时不直播可留空，将自动关闭检测）
 	links: [
 		{
 			name: "QQ",
@@ -162,9 +163,10 @@ export const imageFallbackConfig: ImageFallbackConfig = {
 };
 
 export const umamiConfig: UmamiConfig = {
-	enable: true,
-	baseUrl: "https://cloud.umami.is",
-	shareId: "mmqrQ14OYNe9p9gm",
+	enable: false, // TODO: 待办：在下方填入您自己的配置后，将 enable 设为 true 即可开启全站统计
+	baseUrl: "https://cloud.umami.is", // 统计服务端地址（自建或官方云服务）
+	websiteId: "", // TODO: 待办：填入您的 Umami 网站 ID (例如 2ab39a76-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+	shareId: "", // TODO: 待办：填入您的 Umami 公开分享 ID (若不需要公开仪表盘可留空)
 	timezone: "Asia/Shanghai",
 };
 

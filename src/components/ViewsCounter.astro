@@ -1,4 +1,4 @@
-﻿---
+---
 import Icon from "@components/Icon.astro";
 
 type Props = {
@@ -25,10 +25,13 @@ const id =
 		const el = document.getElementById(id);
 		if (!el || !wrapper) return;
 		
+		// TODO: 待办：文章访问量统计数据源接口。未配置时保持静默隐藏，不发起外部网络请求。
+		// 如自建了文章浏览量 API，在此填入接口地址（例如：`https://api.yourdomain.com/views?pathname=${encodeURIComponent(pathname)}`）
+		const VIEWS_API_URL = "";
+		if (!VIEWS_API_URL) return;
+
 		try {
-			const res = await fetch(
-				`https://t.2x.nz/share?pathname=${encodeURIComponent(pathname)}`,
-			);
+			const res = await fetch(VIEWS_API_URL);
 			if (!res.ok) return;
 			
 			const data = await res.json();

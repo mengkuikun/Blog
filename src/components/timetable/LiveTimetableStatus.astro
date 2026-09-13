@@ -73,19 +73,10 @@ const payloadText = encodeURIComponent(
 		const currentMinute = now.getHours() * 60 + now.getMinutes();
 		const day = now.getDay() === 0 ? 7 : now.getDay();
 
-		if (day >= 6) {
-			return {
-				status: "周末",
-				nextDetail: "--",
-				nextTail: "",
-				nextColor: "",
-			};
-		}
-
 		const courses = getTodayCourses(payload, now);
 		if (courses.length === 0) {
 			return {
-				status: "无课",
+				status: day >= 6 ? "周末无课" : "今日无课",
 				nextDetail: "--",
 				nextTail: "",
 				nextColor: "",

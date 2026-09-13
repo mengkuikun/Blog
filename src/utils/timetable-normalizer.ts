@@ -113,13 +113,13 @@ function toCourseView(
 	color: string,
 	nodeRows: TimetableNodeRow[],
 ): TimetableCourseView {
-	const fixedDurationNodes = 2;
+	const durationNodes = Math.max(1, arrangement.step || 1);
 	const maxNode = Math.max(
 		...nodeRows.map((row) => row.node),
 		arrangement.startNode,
 	);
 	const endNode = Math.min(
-		arrangement.startNode + fixedDurationNodes - 1,
+		arrangement.startNode + durationNodes - 1,
 		maxNode,
 	);
 	const startNodeRow = nodeRows.find(
@@ -138,10 +138,13 @@ function toCourseView(
 		day: arrangement.day,
 		startNode: arrangement.startNode,
 		endNode,
-		durationNodes: fixedDurationNodes,
+		durationNodes,
 		startWeek: arrangement.startWeek,
 		endWeek: arrangement.endWeek,
-		nodeText: `第 ${arrangement.startNode}-${endNode} 节`,
+		nodeText:
+			arrangement.startNode === endNode
+				? `第 ${arrangement.startNode} 节`
+				: `第 ${arrangement.startNode}-${endNode} 节`,
 		timeText: `${startTime} - ${endTime}`,
 	};
 }
@@ -198,5 +201,6 @@ export function buildTimetableViewModel(
 		dayColumns,
 		nodeRows,
 		coursesByDay,
+		meta: data.meta,
 	};
 }

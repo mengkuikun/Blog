@@ -12,21 +12,88 @@ interface Props {
 
 const { viewModel, forceVisible = false } = Astro.props;
 
+interface RowBlock {
+	startNode: number;
+	endNode: number;
+	label: string;
+	timeText: string;
+}
+
+function buildRowBlocks(vm: TimetableViewModel): RowBlock[] {
+	const meta = vm.meta;
+	const morningNum = meta?.morningNum || 0;
+	const afternoonNum = meta?.afternoonNum || 0;
+	const nightNum = meta?.nightNum || 0;
+
+	const nodeRows = vm.nodeRows;
+	const getNodeRow = (node: number) => nodeRows.find((item) => item.node === node);
+
+	if (morningNum > 0 || afternoonNum > 0 || nightNum > 0) {
+		const pairs: { startNode: number; endNode: number }[] = [];
+		const sections = [
+			{ start: 1, count: morningNum },
+			{ start: morningNum + 1, count: afternoonNum },
+			{ start: morningNum + afternoonNum + 1, count: nightNum },
+		];
+
+		for (const sec of sections) {
+			let current = sec.start;
+			const end = sec.start + sec.count - 1;
+			while (current <= end) {
+				if (current + 1 <= end) {
+					pairs.push({ startNode: current, endNode: current + 1 });
+					current += 2;
+				} else {
+					pairs.push({ startNode: current, endNode: current });
+					current += 1;
+				}
+			}
+		}
+
+		return pairs.map(({ startNode, endNode }) => {
+			const startRow = getNodeRow(startNode);
+			const endRow = getNodeRow(endNode);
+			const label =
+				startNode === endNode
+					? `第 ${startNode} 节`
+					: `第 ${startNode}-${endNode} 节`;
+			const timeText = `${startRow?.startTime ?? "--:--"} - ${endRow?.endTime ?? "--:--"}`;
+			return { startNode, endNode, label, timeText };
+		});
+	}
+
+	const maxNode = Math.max(...nodeRows.map((r) => r.node), 1);
+	const pairs: RowBlock[] = [];
+	for (let node = 1; node <= maxNode; node += 2) {
+		const startNode = node;
+		const endNode = Math.min(node + 1, maxNode);
+		const startRow = getNodeRow(startNode);
+		const endRow = getNodeRow(endNode);
+		const label =
+			startNode === endNode
+				? `第 ${startNode} 节`
+				: `第 ${startNode}-${endNode} 节`;
+		const timeText = `${startRow?.startTime ?? "--:--"} - ${endRow?.endTime ?? "--:--"}`;
+		pairs.push({ startNode, endNode, label, timeText });
+	}
+	return pairs;
+}
+
 const dayIndexes = viewModel.dayColumns.map((day) => day.day);
 const dayCount = viewModel.dayColumns.length;
-const pairRowCount = viewModel.nodeRows.filter(
-	(row) => row.node % 2 === 1,
-).length;
-const courseMapByDayAndNode = new Map<string, TimetableCourseView[]>();
+const rowBlocks = buildRowBlocks(viewModel);
+const courseMapByDayAndBlock = new Map<string, TimetableCourseView[]>();
 
 for (const day of dayIndexes) {
 	for (const course of viewModel.coursesByDay[day] ?? []) {
-		const pairStartNode =
-			course.startNode % 2 === 1 ? course.startNode : course.startNode - 1;
-		const key = `${day}-${Math.max(1, pairStartNode)}`;
-		const list = courseMapByDayAndNode.get(key) ?? [];
+		const matchedBlock =
+			rowBlocks.find(
+				(b) => course.startNode >= b.startNode && course.startNode <= b.endNode,
+			) ?? rowBlocks[0];
+		const key = `${day}-${matchedBlock.startNode}`;
+		const list = courseMapByDayAndBlock.get(key) ?? [];
 		list.push(course);
-		courseMapByDayAndNode.set(key, list);
+		courseMapByDayAndBlock.set(key, list);
 	}
 }
 ---
@@ -41,33 +108,31 @@ for (const day of dayIndexes) {
 			))}
 		</div>
 
-		{viewModel.nodeRows
-			.filter((row) => row.node % 2 === 1)
-			.map((row) => (
-				<div class="timetable-row-grid border-b last:border-b-0 border-white/10">
-					<div class="px-3 py-3 border-r border-white/10">
-						<p class="text-xs text-white font-medium">第 {row.node}-{Math.min(row.node + 1, viewModel.nodeRows.length)} 节</p>
-						<p class="text-[11px] text-white/80 mt-1">{row.startTime} - {viewModel.nodeRows.find((item) => item.node === Math.min(row.node + 1, viewModel.nodeRows.length))?.endTime ?? row.endTime}</p>
-					</div>
-					{viewModel.dayColumns.map((day) => {
-						const key = `${day.day}-${row.node}`;
-						const courses = courseMapByDayAndNode.get(key) ?? [];
-						return (
-							<div class="px-2 py-2 border-r last:border-r-0 border-white/10 align-top min-h-[88px]">
-								{courses.length > 0 ? (
-									<div class="space-y-2">
-										{courses.map((course) => (
-											<TimetableCourseCard course={course} compact={true} />
-										))}
-									</div>
-								) : (
-									<div class="h-full flex items-center justify-center text-[11px] text-white/60">—</div>
-								)}
-							</div>
-						);
-					})}
+		{rowBlocks.map((block) => (
+			<div class="timetable-row-grid border-b last:border-b-0 border-white/10">
+				<div class="px-3 py-3 border-r border-white/10">
+					<p class="text-xs text-white font-medium">{block.label}</p>
+					<p class="text-[11px] text-white/80 mt-1">{block.timeText}</p>
 				</div>
-			))}
+				{viewModel.dayColumns.map((day) => {
+					const key = `${day.day}-${block.startNode}`;
+					const courses = courseMapByDayAndBlock.get(key) ?? [];
+					return (
+						<div class="px-2 py-2 border-r last:border-r-0 border-white/10 align-top min-h-[88px]">
+							{courses.length > 0 ? (
+								<div class="space-y-2">
+									{courses.map((course) => (
+										<TimetableCourseCard course={course} compact={true} />
+									))}
+								</div>
+							) : (
+								<div class="h-full flex items-center justify-center text-[11px] text-white/60">—</div>
+							)}
+						</div>
+					);
+				})}
+			</div>
+		))}
 		</div>
 	</div>
 </div>

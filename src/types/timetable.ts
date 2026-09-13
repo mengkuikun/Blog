@@ -20,6 +20,9 @@ export interface TimetableMetaSegment {
 	timeTable: number;
 	showSat?: boolean;
 	showSun?: boolean;
+	morningNum?: number;
+	afternoonNum?: number;
+	nightNum?: number;
 }
 
 export interface TimetableCourseDefinition {
@@ -82,4 +85,5 @@ export interface TimetableViewModel {
 	dayColumns: TimetableDayColumn[];
 	nodeRows: TimetableNodeRow[];
 	coursesByDay: Record<number, TimetableCourseView[]>;
+	meta?: TimetableMetaSegment;
 }

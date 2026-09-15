@@ -137,6 +137,7 @@ const bannerOffset =
 		var isDefaultPort = port === "" || port === "80" || port === "443";
 		var isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".local");
 		var isPreview =
+			hostname === "b.mengku.shop" ||
 			hostname.endsWith(".pages.dev") ||
 			hostname.endsWith(".vercel.app") ||
 			hostname.endsWith(".edgeone.app") ||

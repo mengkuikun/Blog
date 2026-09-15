@@ -136,7 +136,13 @@ const bannerOffset =
 		// 默认端口判断且排除本地和测试环境
 		var isDefaultPort = port === "" || port === "80" || port === "443";
 		var isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".local");
-		var isPreview = hostname.endsWith(".pages.dev") || hostname.endsWith(".vercel.app");
+		var isPreview =
+			hostname.endsWith(".pages.dev") ||
+			hostname.endsWith(".vercel.app") ||
+			hostname.endsWith(".edgeone.app") ||
+			hostname.endsWith(".dnsoe4.com") ||
+			hostname.endsWith(".edgeone.cool") ||
+			hostname.endsWith(".tencentedge.com");
 
 		if (customDomain && hostname !== customDomain && isDefaultPort && !isLocal && !isPreview) {
 			location.replace(

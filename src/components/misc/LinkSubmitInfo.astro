@@ -1,4 +1,6 @@
 ---
+import { profileConfig, siteConfig } from "@/config";
+
 interface Props {
 	dataType?: "friends" | "sponsors";
 	class?: string;
@@ -6,15 +8,136 @@ interface Props {
 
 const { dataType = "friends", class: className } = Astro.props;
 
-const linkText = "https://github.com/mengkuikun/Blog/tree/main/src/data/friends";
-const checkLinksUrl = "https://github.com/mengkuikun/Blog/actions/workflows/check-links.yml";
+const domain = siteConfig.customDomain || "blog.mengku.shop";
+const siteUrl = `https://${domain}`;
+const avatarUrl = profileConfig.avatar.startsWith("http")
+	? profileConfig.avatar
+	: `${siteUrl}${profileConfig.avatar.startsWith("/") ? "" : "/"}${profileConfig.avatar}`;
+
+const repoUrl = "https://github.com/mengkuikun/Blog";
+const linkText = `${repoUrl}/tree/main/src/data/friends`;
+const checkLinksUrl = `${repoUrl}/actions/workflows/check-links.yml`;
+
+// 对齐原作者 src/data/friends/*.json 的标准英文键名与顺序规范
+const siteInfoJson = JSON.stringify(
+	{
+		name: profileConfig.name,
+		avatar: avatarUrl,
+		description: profileConfig.bio,
+		url: siteUrl,
+	},
+	null,
+	2,
+);
 ---
 
-<div class:list={["text-sm text-white/60", className]}>
-    <p>
-        如果您已添加，并且想加入友链名单，<a target="_blank" href={linkText} class="transition link text-[var(--primary)] font-medium underline">请点击这里提交 PR</a>
-    </p>
-    <p class="mt-2">
-        我们会定期通过 Github Action 运行一个工作流，使用 Github 的 IP 对这里的所有站点做访问性测试，如果不通过测试（如网站无法访问），该条目将被<strong>自动删除</strong>。当您再次做好准备时，欢迎再次提交 PR 申请。访问性测试结果可以<a target="_blank" href={checkLinksUrl} class="transition link text-[var(--primary)] font-medium underline">访问此 URL 来得知</a>。
-    </p>
+<div class:list={["text-sm text-white/60 space-y-4", className]}>
+    <!-- 凸显博客特色与规范说明文案 -->
+    <div class="space-y-2 leading-relaxed">
+        <p>
+            欢迎技术折腾、自建服务、云原生、二次元及生活随笔类的独立博客交换友链！
+        </p>
+        <p>
+            申请前请先在贵站添加本站友链。如果您已添加，<a target="_blank" rel="noopener noreferrer" href={linkText} class="transition link text-[var(--primary)] font-medium underline">请点击这里前往 GitHub 提交 PR</a>（在 <code>src/data/friends/</code> 下新增一个以您站点命名的 <code>.json</code> 文件即可）。
+        </p>
+        <p class="text-xs text-white/45">
+            本站已接入 GitHub Actions 自动化流水线（使用 Playwright 自动测试站点、头像可达性及双向回链，全部通过后<strong>自动合并上线</strong>）。每月定期对所有友链进行访问性测试，无法访问或移除回链的条目将被自动清理，恢复后欢迎随时再次提交申请。<a target="_blank" rel="noopener noreferrer" href={checkLinksUrl} class="transition link text-[var(--primary)] font-medium underline">访问性测试结果可在此查阅</a>。
+        </p>
+    </div>
+
+    <!-- 符合博客 UI 规范的本站信息卡片（标准英文 JSON 格式） -->
+    <div class="rounded-xl bg-[var(--license-block-bg)] border border-[var(--line-divider)] p-4 text-xs transition">
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--line-divider)]">
+            <div class="flex items-center gap-2 font-medium text-white/80">
+                <svg class="w-4 h-4 text-[var(--primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <span>本站友链信息 (Site Info)</span>
+            </div>
+            <button
+                type="button"
+                id="copy-site-info-btn"
+                class="px-2.5 py-1 rounded-lg bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:scale-95 text-[var(--btn-content)] text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
+                data-copy-text={siteInfoJson}
+                title="复制标准 JSON 配置"
+            >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span id="copy-btn-text">复制 JSON 配置</span>
+            </button>
+        </div>
+
+        <!-- 字段显示对齐原作者 JSON 顺序规范 (name -> avatar -> description -> url) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 pt-3 leading-normal font-mono text-xs">
+            <div class="flex items-center truncate">
+                <span class="text-white/40 shrink-0 mr-2">name:</span>
+                <span class="text-white/80 font-medium select-all">{profileConfig.name}</span>
+            </div>
+            <div class="flex items-center truncate">
+                <span class="text-white/40 shrink-0 mr-2">avatar:</span>
+                <span class="text-white/80 select-all truncate">{avatarUrl}</span>
+            </div>
+            <div class="flex items-center truncate">
+                <span class="text-white/40 shrink-0 mr-2">description:</span>
+                <span class="text-white/80 select-all truncate">{profileConfig.bio}</span>
+            </div>
+            <div class="flex items-center truncate">
+                <span class="text-white/40 shrink-0 mr-2">url:</span>
+                <a href={siteUrl} target="_blank" class="text-white/80 select-all hover:text-[var(--primary)] transition truncate">{siteUrl}</a>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script is:inline>
+    function setupSiteInfoCopy() {
+        const btn = document.getElementById('copy-site-info-btn');
+        const btnText = document.getElementById('copy-btn-text');
+        if (!btn || !btnText) return;
+
+        if (btn.__copyBound) return;
+        btn.__copyBound = true;
+
+        btn.addEventListener('click', async () => {
+            const text = btn.getAttribute('data-copy-text');
+            if (!text) return;
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = btnText.textContent;
+                btnText.textContent = '已复制 JSON！';
+                btn.classList.add('text-[var(--primary)]');
+                setTimeout(() => {
+                    btnText.textContent = originalText;
+                    btn.classList.remove('text-[var(--primary)]');
+                }, 2000);
+            } catch (e) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    btnText.textContent = '已复制 JSON！';
+                    setTimeout(() => {
+                        btnText.textContent = '复制 JSON 配置';
+                    }, 2000);
+                } catch (e2) {
+                    btnText.textContent = '复制失败';
+                }
+                document.body.removeChild(textarea);
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupSiteInfoCopy);
+    } else {
+        setupSiteInfoCopy();
+    }
+    document.addEventListener('swup:contentReplaced', setupSiteInfoCopy);
+</script>

@@ -2,8 +2,8 @@
 import { siteConfig } from "@/config";
 import type { Friend } from "@/types/data";
 import LinkSubmitInfo from "@components/misc/LinkSubmitInfo.astro";
+import PageCardHeader from "@components/misc/PageCardHeader.astro";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
-import Icon from "@components/Icon.astro";
 
 const friends = Object.values(
 	import.meta.glob<Friend>("@/data/friends/*.json", {
@@ -35,34 +35,50 @@ const breadcrumbSchema = {
 <MainGridLayout title="友链">
     <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)}></script>
     <div class="card-base p-6 md:p-8">
-        <div class="flex items-center gap-2 mb-6">
-            <div class="h-8 w-8 rounded-lg bg-[var(--primary)] flex items-center justify-center text-black/70">
-                <Icon name="material-symbols:diversity-3" class="text-[1.5rem]" />
-            </div>
-            <h1 class="text-2xl font-bold text-white">友链</h1>
+        <PageCardHeader title="友链" pathname="/friends/">
+            <svg slot="icon" class="w-6 h-6 text-black/70" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M1 20v-4q0-.85.588-1.425T3 14h3.275q.5 0 .95.25t.725.675q.725.975 1.788 1.525T12 17q1.225 0 2.288-.55t1.762-1.525q.325-.425.763-.675t.912-.25H21q.85 0 1.425.575T23 16v4h-7v-2.275q-.875.625-1.888.95T12 19q-1.075 0-2.1-.337T8 17.7V20zm11-4q-.95 0-1.8-.437T8.775 14.35q-.425-.625-1.062-.987T6.325 13q.55-.925 2.325-1.463T12 11t3.35.538T17.675 13q-.725 0-1.375.363t-1.075.987q-.55.8-1.4 1.225T12 16m-8-3q-1.25 0-2.125-.875T1 10q0-1.275.875-2.137T4 7q1.275 0 2.138.863T7 10q0 1.25-.862 2.125T4 13m16 0q-1.25 0-2.125-.875T17 10q0-1.275.875-2.137T20 7q1.275 0 2.138.863T23 10q0 1.25-.862 2.125T20 13m-8-3q-1.25 0-2.125-.875T9 7q0-1.275.875-2.137T12 4q1.275 0 2.138.863T15 7q0 1.25-.862 2.125T12 10"/>
+            </svg>
+        </PageCardHeader>
+
+        <!-- 申请友链与本站信息 -->
+        <div class="mb-6">
+            <LinkSubmitInfo dataType="friends" />
         </div>
 
-        <!-- 申请友链 -->
-            <div class="mb-6">
-                <LinkSubmitInfo dataType="friends"></LinkSubmitInfo>
-            </div>
         {friends.length === 0 ? (
             <div class="text-center py-12 text-white/40 border border-dashed border-white/10 rounded-xl">
-                <Icon name="material-symbols:person-outline" class="text-4xl mx-auto mb-2 opacity-50" />
+                <svg class="w-10 h-10 mx-auto mb-2 opacity-50 text-white/40" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
                 <p class="text-sm">暂无友链，欢迎按上方提示申请添加~</p>
             </div>
         ) : (
             <div class="friends-masonry">
                 {friends.map((friend) => (
-                    <a href={friend.url} target="_blank" class="friend-card">
-                        <div class="flex items-center gap-2.5 mb-1.5">
-                            <div class="relative w-7 h-7 rounded-lg overflow-hidden border border-white/10 shadow-sm" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
-                                <Icon name="material-symbols:person" class="absolute inset-0 m-auto text-gray-400 text-[0.85rem]" />
-                                <img src={friend.avatar} loading="lazy" class="w-full h-full object-cover" alt={`${friend.name}的头像`} onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none'" />
+                    <a href={friend.url} target="_blank" rel="noopener noreferrer" class="friend-card group">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="relative w-8 h-8 rounded-lg overflow-hidden border border-white/10 shadow-sm shrink-0" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
+                                    <svg class="absolute inset-0 m-auto text-gray-400 w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                    </svg>
+                                    <img src={friend.avatar} loading="lazy" class="w-full h-full object-cover" alt={`${friend.name}的头像`} onload="this.previousElementSibling.style.display='none'" onerror="this.style.display='none'" />
+                                </div>
+                                <div class="font-bold text-white text-base truncate flex items-center gap-1.5">
+                                    <span>{friend.name}</span>
+                                    {friend.vip && (
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-normal shrink-0">
+                                            常驻
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            <div class="font-bold text-white text-base">{friend.name}</div>
+                            <svg class="w-3.5 h-3.5 text-white/20 group-hover:text-[var(--primary)] transition shrink-0 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M7 17L17 7M17 7H7M17 7V17"/>
+                            </svg>
                         </div>
-                        <div class="text-sm text-white/50">{friend.description}</div>
+                        <div class="text-sm text-white/50 line-clamp-2">{friend.description}</div>
                     </a>
                 ))}
             </div>

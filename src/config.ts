@@ -119,7 +119,7 @@ export const navBarConfig: NavBarConfig = {
 export const profileConfig: ProfileConfig = {
 	avatar: "/avatar.jpg", // Relative to the /public directory if it starts with '/'
 	name: "夢酷",
-	bio: "Protect What You Love.",
+	bio: "Crafting Dreams In Code.",
 	bilibiliLiveRoom: "", // TODO: 待办：填入您的 B站直播间房间号（如平时不直播可留空，将自动关闭检测）
 	links: [
 		{

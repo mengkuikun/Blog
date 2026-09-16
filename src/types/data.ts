@@ -3,6 +3,8 @@ export interface Friend {
 	avatar: string;
 	description: string;
 	url: string;
+	backlink?: string;
+	vip?: boolean;
 }
 
 export interface FriendsData {

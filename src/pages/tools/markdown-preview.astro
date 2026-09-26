@@ -1,0 +1,24 @@
+---
+export const toolMeta = {
+	title: "Markdown 预览",
+	description: "纯本地拖拽即时预览 Markdown，1:1 复刻博客正式排版与特色语法",
+	icon: "material-symbols:preview-outline-rounded",
+	order: 4,
+};
+
+import PageCardHeader from "@components/misc/PageCardHeader.astro";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import MarkdownPreviewTool from "@components/MarkdownPreviewTool.svelte";
+
+const title = "Markdown 文章预览";
+---
+
+<MainGridLayout title={title} description="纯本地拖拽即时预览 Markdown，1:1 复刻博客正式排版与特色语法">
+	<div class="p-6 md:p-8 border-b border-white/10">
+		<PageCardHeader title={title} icon="material-symbols:preview-outline-rounded" pathname="/tools/markdown-preview/" />
+		<p class="mb-6 text-sm leading-relaxed text-50">
+			支持直接拖入本地 <code class="text-white/80 font-mono">.md</code> 文件或实时在线编辑，100% 在浏览器本地完成解析，免提交 Git 即可 1:1 查看博客同款高亮、公式与彩色提示块。
+		</p>
+		<MarkdownPreviewTool client:load />
+	</div>
+</MainGridLayout>

@@ -2,6 +2,7 @@
 import MarkdownIt from "markdown-it";
 import Prism from "prismjs";
 import katex from "katex";
+import { formatPostDateForDisplay, parsePostDateToDate } from "@/utils/date-utils";
 
 import "prismjs/components/prism-bash";
 import "prismjs/components/prism-javascript";
@@ -21,7 +22,7 @@ let fileName = "";
 let viewMode: ViewMode = "article";
 let isDragging = false;
 let copyNotification = "";
-let notificationTimer: any = null;
+let notificationTimer: ReturnType<typeof setTimeout> | null = null;
 let fileInputRef: HTMLInputElement | null = null;
 
 // 解析出的 Frontmatter 元数据
@@ -314,78 +315,15 @@ function calculateReadingStats(text: string) {
 	return { total, minutes };
 }
 
-// 日期解析（100% 对齐 date-utils.ts 的 parsePostDateToDate）
-function parseDateString(value: unknown): Date | null {
-	if (!value) return null;
-	if (value instanceof Date) return value;
-	if (typeof value !== "string") return new Date(String(value));
-
-	const s = value.trim();
-	const dateOnly = /^(\d{4})[-/](\d{2})[-/](\d{2})$/.exec(s);
-	if (dateOnly) {
-		const y = Number(dateOnly[1]);
-		const m = Number(dateOnly[2]);
-		const d = Number(dateOnly[3]);
-		return new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
-	}
-
-	const localNoZone =
-		/^(\d{4})[-/](\d{2})[-/](\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(s);
-	if (localNoZone) {
-		const y = Number(localNoZone[1]);
-		const m = Number(localNoZone[2]);
-		const d = Number(localNoZone[3]);
-		const hh = Number(localNoZone[4]);
-		const mm = Number(localNoZone[5]);
-		const ss = Number(localNoZone[6] ?? "0");
-		return new Date(Date.UTC(y, m - 1, d, hh, mm, ss));
-	}
-
-	const parsed = new Date(s);
-	return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-// 格式化日期为博客标准显示（100% 对齐 date-utils.ts 的 formatPostDateForDisplay）
+// 格式化日期为博客标准显示（复用 date-utils.ts）
 function formatPostDate(dateStr?: string): string {
 	if (!dateStr) return "";
-	const date = parseDateString(dateStr);
-	if (!date) return dateStr;
-
-	const isDateOnly =
-		date.getUTCHours() === 0 &&
-		date.getUTCMinutes() === 0 &&
-		date.getUTCSeconds() === 0 &&
-		date.getUTCMilliseconds() === 0;
-
-	const timeZone = "Asia/Shanghai";
-
-	const dateParts = new Intl.DateTimeFormat("zh-CN", {
-		timeZone,
-		year: "numeric",
-		month: "numeric",
-		day: "numeric",
-	}).formatToParts(date);
-	const y = dateParts.find((p) => p.type === "year")?.value ?? "";
-	const m = dateParts.find((p) => p.type === "month")?.value ?? "";
-	const d = dateParts.find((p) => p.type === "day")?.value ?? "";
-
-	const currentYear = new Date().getFullYear().toString();
-	const datePart = y === currentYear ? `${m}月${d}日` : `${y}年${m}月${d}日`;
-	if (isDateOnly) return datePart;
-
-	const timeParts = new Intl.DateTimeFormat("zh-CN", {
-		timeZone,
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hour12: false,
-	}).formatToParts(date);
-	const hh = timeParts.find((p) => p.type === "hour")?.value ?? "00";
-	const mm = timeParts.find((p) => p.type === "minute")?.value ?? "00";
-	const ss = timeParts.find((p) => p.type === "second")?.value ?? "00";
-
-	const timePart = ss !== "00" ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
-	return `${datePart} ${timePart}`;
+	try {
+		const date = parsePostDateToDate(dateStr);
+		return Number.isNaN(date.getTime()) ? dateStr : formatPostDateForDisplay(date);
+	} catch {
+		return dateStr;
+	}
 }
 
 // 转换 Admonitions 提示块
@@ -438,24 +376,24 @@ function processSpoiler(text: string): string {
 	return text.replace(/\|\|([\s\S]*?)\|\|/g, '<span class="spoiler" title="点击显示">$1</span>');
 }
 
-// 构建目录大纲树
+// 构建目录大纲树（基于栈的通用多级嵌套大纲算法）
 function buildOutlineTree(flatList: { level: number; text: string; id: string }[]): TocItem[] {
 	if (flatList.length === 0) return [];
-	const minLevel = Math.min(...flatList.map((item) => item.level));
 	const tree: TocItem[] = [];
-	let currentParent: TocItem | null = null;
+	const stack: { level: number; node: TocItem }[] = [];
 
 	for (const item of flatList) {
 		const node: TocItem = { ...item, children: [] };
-		if (item.level === minLevel) {
-			tree.push(node);
-			currentParent = node;
-		} else if (currentParent && item.level > minLevel) {
-			currentParent.children.push(node);
-		} else {
-			tree.push(node);
-			currentParent = node;
+		while (stack.length > 0 && stack[stack.length - 1].level >= item.level) {
+			stack.pop();
 		}
+
+		if (stack.length === 0) {
+			tree.push(node);
+		} else {
+			stack[stack.length - 1].node.children.push(node);
+		}
+		stack.push({ level: item.level, node });
 	}
 	return tree;
 }
@@ -505,7 +443,7 @@ function renderMarkdownDocument(raw: string) {
 			const placeholder = `@@MATH_BLOCK_${mathBlocks.length}@@`;
 			mathBlocks.push(html);
 			return placeholder;
-		} catch (e) {
+		} catch {
 			return `$$\n${eq}\n$$`;
 		}
 	});
@@ -516,7 +454,7 @@ function renderMarkdownDocument(raw: string) {
 			const placeholder = `@@MATH_INLINE_${mathInlines.length}@@`;
 			mathInlines.push(html);
 			return placeholder;
-		} catch (e) {
+		} catch {
 			return `$${eq}$`;
 		}
 	});
@@ -638,7 +576,7 @@ async function copyMarkdownSource() {
 	try {
 		await navigator.clipboard.writeText(markdownText);
 		showToast("Markdown 源码已复制到剪贴板！");
-	} catch (err) {
+	} catch {
 		showToast("复制失败，请手动选择复制");
 	}
 }
@@ -649,7 +587,7 @@ async function copyRenderedHtml() {
 	try {
 		await navigator.clipboard.writeText(renderedHtml);
 		showToast("渲染后的 HTML 已复制到剪贴板！");
-	} catch (err) {
+	} catch {
 		showToast("复制失败，请手动选择复制");
 	}
 }
@@ -841,7 +779,7 @@ function handleCoverError(event: Event) {
 			<div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_17.5rem] gap-4 items-start w-full">
 				<!-- 左侧：真实博文主体卡片 -->
 				<div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4">
-					<div id="post-container" class="card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full">
+					<div id="markdown-preview-container" class="card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full">
 						<!-- word count and reading time（对齐 [...slug].astro:96-109） -->
 						<div class="flex flex-row text-white/30 gap-5 mb-3">
 							<div class="flex flex-row items-center">
@@ -1015,6 +953,27 @@ function handleCoverError(event: Event) {
 																	{sub.text}
 																</div>
 															</button>
+
+															{#if sub.children && sub.children.length > 0}
+																<ul class="pl-4 space-y-1 mt-0.5">
+																	{#each sub.children as subsub}
+																		<li>
+																			<button
+																				type="button"
+																				class="px-2 flex gap-2 relative transition w-full min-h-7 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-1 text-left items-center"
+																				on:click={() => scrollToHeading(subsub.id)}
+																			>
+																				<div class="w-5 h-5 shrink-0 flex items-center justify-center">
+																					<div class="transition w-1.5 h-1.5 rounded-sm bg-white/20"></div>
+																				</div>
+																				<div class="transition text-[11px] min-w-0 flex-1 break-words text-white/50 hover:text-white/90">
+																					{subsub.text}
+																				</div>
+																			</button>
+																		</li>
+																	{/each}
+																</ul>
+															{/if}
 														</li>
 													{/each}
 												</ul>

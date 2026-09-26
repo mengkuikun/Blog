@@ -1,4 +1,4 @@
-﻿---
+---
 import { url, pathsEqual } from "@/utils/url-utils";
 import Footer from "@components/Footer.astro";
 import Navbar from "@components/Navbar.astro";
@@ -91,6 +91,13 @@ const isForumRoute =
                 <div id="sidebar-content" transition:persist>
                     <SideBar headings={headings}></SideBar>
                 </div>
+                {siteConfig.toc.enable && headings && headings.length > 0 && (
+                    <div id="sidebar-reading-toc" class="sticky top-4 w-full" style="top: calc(var(--navbar-offset, 0px) + 1rem);">
+                        <div class="toc-scroll-wrapper h-auto max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden rounded-xl">
+                            <TOC headings={headings}></TOC>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <main id="main-content" class:list={["row-start-1 col-span-1 overflow-visible min-w-0",

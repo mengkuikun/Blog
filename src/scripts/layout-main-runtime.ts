@@ -175,11 +175,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 let backToTopBtn = document.getElementById("back-to-top-btn");
 let goToCommentsBtn = document.getElementById("go-to-comments-btn");
+let readingModeBtn = document.getElementById("reading-mode-btn");
 let toc = document.getElementById("toc-wrapper");
 let navbar = document.getElementById("navbar-wrapper");
 function refreshControlRefs() {
 	backToTopBtn = document.getElementById("back-to-top-btn");
 	goToCommentsBtn = document.getElementById("go-to-comments-btn");
+	readingModeBtn = document.getElementById("reading-mode-btn");
 	toc = document.getElementById("toc-wrapper");
 	navbar = document.getElementById("navbar-wrapper");
 }
@@ -204,6 +206,15 @@ function scrollFunction() {
 			goToCommentsBtn.classList.remove("hide");
 		} else {
 			goToCommentsBtn.classList.add("hide");
+		}
+	}
+
+	if (readingModeBtn) {
+		const canReadingMode = !!document.getElementById("sidebar-reading-toc");
+		if (canReadingMode || document.body.classList.contains("reading-mode")) {
+			readingModeBtn.classList.remove("hide");
+		} else {
+			readingModeBtn.classList.add("hide");
 		}
 	}
 
@@ -266,3 +277,14 @@ window.onresize = () => {
 		`${offset}px`,
 	);
 };
+
+document.addEventListener("swup:contentReplaced", () => {
+	refreshControlRefs();
+	scrollFunction();
+	if (!document.getElementById("sidebar-reading-toc") && document.body.classList.contains("reading-mode")) {
+		document.body.classList.remove("reading-mode");
+		if (typeof (window as unknown as { updateReadingModeUI?: (v: boolean) => void }).updateReadingModeUI === "function") {
+			(window as unknown as { updateReadingModeUI: (v: boolean) => void }).updateReadingModeUI(false);
+		}
+	}
+});

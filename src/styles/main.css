@@ -241,3 +241,60 @@ body {
     position: relative !important;
 }
 
+/* 阅读模式 (Reading Mode)：方案1 交叉淡入微浮动动效 (Cross-fade & Micro-slide) */
+#main-grid > #sidebar:not(.hidden) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+}
+
+#sidebar-content,
+#sidebar-reading-toc {
+    grid-area: 1 / 1;
+    width: 100%;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+}
+
+#sidebar-content {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#sidebar-reading-toc {
+    opacity: 0;
+    transform: translateY(12px);
+    visibility: hidden;
+    pointer-events: none;
+}
+
+body.reading-mode #sidebar-content {
+    opacity: 0;
+    transform: translateY(-12px);
+    visibility: hidden;
+    pointer-events: none;
+}
+
+body.reading-mode #sidebar-reading-toc {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#toc-wrapper {
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.reading-mode #toc-wrapper {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+

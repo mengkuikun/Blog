@@ -1,9 +1,19 @@
-﻿---
+---
 import Icon from "@components/Icon.astro";
 ---
 
 <!-- There can't be a filter on parent element, or it will break `fixed` -->
 <div class="back-to-top-wrapper hidden lg:block">
+    <div id="reading-mode-btn" class="back-to-top-btn hide flex items-center rounded-2xl overflow-hidden transition" onclick="toggleReadingMode()" title="进入阅读模式">
+        <button aria-label="进入阅读模式" class="btn-card h-[3.75rem] w-[3.75rem] flex items-center justify-center">
+            <span id="reading-mode-icon-enter" class="flex items-center justify-center pointer-events-none">
+                <Icon name="material-symbols:auto-stories" class="text-[1.75rem]"></Icon>
+            </span>
+            <span id="reading-mode-icon-exit" class="items-center justify-center pointer-events-none" style="display: none;">
+                <Icon name="material-symbols:logout" class="text-[1.75rem]"></Icon>
+            </span>
+        </button>
+    </div>
     <div id="go-to-comments-btn" class="back-to-top-btn hide flex items-center rounded-2xl overflow-hidden transition" onclick="goToComments()">
         <button aria-label="Go to Comments" class="btn-card h-[3.75rem] w-[3.75rem]">
             <Icon name="mingcute:comment-fill" class="mx-auto"></Icon>
@@ -16,38 +26,59 @@ import Icon from "@components/Icon.astro";
     </div>
 </div>
 
-<style lang="stylus">
-.back-to-top-wrapper
-    width: 3.75rem
-    height: 3.75rem
-    position: absolute
-    right: 0
-    top: 0
-    pointer-events: none
+<style>
+.back-to-top-wrapper {
+    width: 3.75rem;
+    height: 3.75rem;
+    position: absolute;
+    right: 0;
+    top: 0;
+    pointer-events: none;
+}
 
-.back-to-top-btn
-    color: var(--primary)
-    font-size: 2.25rem
-    font-weight: bold
-    border: none
-    position: fixed
-    bottom: 10rem
-    opacity: 1
-    cursor: pointer
-    transform: translateX(5rem)
-    pointer-events: auto
-    z-index: 50
-    i
-        font-size: 1.75rem
-    &.hide
-        transform: translateX(5rem) scale(0.9)
-        opacity: 0
-        pointer-events: none
-    &:active
-      transform: translateX(5rem) scale(0.9)
+.back-to-top-btn {
+    color: var(--primary);
+    font-size: 2.25rem;
+    font-weight: bold;
+    border: none;
+    position: fixed;
+    opacity: 1;
+    cursor: pointer;
+    transform: translateX(5rem);
+    pointer-events: auto;
+    z-index: 50;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
 
-#go-to-comments-btn
-    bottom: 14.5rem
+.back-to-top-btn i {
+    font-size: 1.75rem;
+}
+
+.back-to-top-btn.hide {
+    transform: translateX(5rem) scale(0.9);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.back-to-top-btn:active {
+    transform: translateX(5rem) scale(0.9);
+}
+
+#back-to-top-btn {
+    bottom: 10rem !important;
+}
+
+#go-to-comments-btn {
+    bottom: 14.5rem !important;
+}
+
+#reading-mode-btn {
+    bottom: 19rem !important;
+}
+
+#reading-mode-btn button {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease;
+}
 </style>
 
 <script is:raw is:inline>
@@ -60,5 +91,55 @@ function goToComments() {
     if (comments) {
         comments.scrollIntoView({ behavior: 'smooth' });
     }
+}
+
+function updateReadingModeUI(isReading) {
+    const btn = document.getElementById('reading-mode-btn');
+    const iconEnter = document.getElementById('reading-mode-icon-enter');
+    const iconExit = document.getElementById('reading-mode-icon-exit');
+    if (btn) {
+        btn.setAttribute('title', isReading ? '退出阅读模式' : '进入阅读模式');
+        btn.setAttribute('aria-label', isReading ? '退出阅读模式' : '进入阅读模式');
+        const buttonEl = btn.querySelector('button');
+        if (buttonEl) {
+            buttonEl.style.transform = 'scale(0.85) rotate(15deg)';
+            setTimeout(() => {
+                buttonEl.style.transform = '';
+            }, 180);
+        }
+    }
+    if (iconEnter && iconExit) {
+        iconEnter.style.display = isReading ? 'none' : 'flex';
+        iconExit.style.display = isReading ? 'flex' : 'none';
+    }
+}
+
+function toggleReadingMode() {
+    const isReading = document.body.classList.toggle('reading-mode');
+    updateReadingModeUI(isReading);
+    window.dispatchEvent(new Event('scroll'));
+    window.dispatchEvent(new CustomEvent('reading-mode-toggle', { detail: { enabled: isReading } }));
+}
+
+function exitReadingMode() {
+    if (document.body.classList.contains('reading-mode')) {
+        document.body.classList.remove('reading-mode');
+        updateReadingModeUI(false);
+        window.dispatchEvent(new Event('scroll'));
+        window.dispatchEvent(new CustomEvent('reading-mode-toggle', { detail: { enabled: false } }));
+    }
+}
+
+window.toggleReadingMode = toggleReadingMode;
+window.exitReadingMode = exitReadingMode;
+window.updateReadingModeUI = updateReadingModeUI;
+
+if (!window.__readingModeKeyBound) {
+    window.__readingModeKeyBound = true;
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('reading-mode')) {
+            exitReadingMode();
+        }
+    });
 }
 </script>

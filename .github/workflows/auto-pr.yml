@@ -15,7 +15,7 @@ env:
   PAT: ${{ secrets.PAT }}
 
 concurrency:
-  group: auto-pr-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: auto-pr-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -744,7 +744,7 @@ jobs:
               }
 
   verify_and_merge:
-    if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.body == '准备完毕' }}
+    if: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.body == '准备完毕' && !endsWith(github.event.comment.user.login, '[bot]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

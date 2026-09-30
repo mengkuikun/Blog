@@ -37,7 +37,8 @@ jobs:
       - name: Label PR by changed paths
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          retries: 3
           script: |
             const owner = context.repo.owner
             const repo = context.repo.repo
@@ -196,12 +197,10 @@ jobs:
                 await github.rest.issues.createComment({ owner, repo, issue_number: pull_number, body: fullBody })
                 core.info('createComment ok')
               } catch (e) {
-                core.error(`createComment failed: status=${e?.status || ''}`)
-                core.error(`createComment failed: message=${e?.message || e}`)
+                core.warning(`createComment failed: status=${e?.status || ''} message=${e?.message || e}`)
                 try {
-                  core.error(`createComment failed: response=${JSON.stringify(e?.response?.data || null)}`)
+                  core.warning(`createComment response: ${JSON.stringify(e?.response?.data || null)}`)
                 } catch {}
-                throw e
               }
             }
 
@@ -238,72 +237,15 @@ jobs:
 
             const siteBase = await getSiteBase()
 
-            // Reusable verification logic using Playwright
-            async function checkUrlReachability(url) {
-              try {
-                const { execSync } = require('child_process')
-                const fs = require('fs')
-                const path = require('path')
-                
-                // Create a temporary Playwright script in current directory
-                const scriptPath = path.join(process.cwd(), 'check-url-pw.js')
-                const script = `
-                  const { chromium } = require('@playwright/test');
-                  const targetUrl = process.argv[2];
-                  (async () => {
-                    let browser;
-                    try {
-                      browser = await chromium.launch({ headless: true });
-                      const context = await browser.newContext({
-                        userAgent: 'fuwari-auto-pr/1.0 (+github actions)'
-                      });
-                      const page = await context.newPage();
-                      
-                      const response = await page.goto(targetUrl, {
-                        waitUntil: 'networkidle',
-                        timeout: 30000
-                      });
-                      
-                      const body = await page.content();
-                      const finalUrl = page.url();
-                      const status = response.status();
-                      
-                      await browser.close();
-                      
-                      console.log(JSON.stringify({ ok: status >= 200 && status < 400, status, body, url: finalUrl }));
-                    } catch (e) {
-                      if (browser) await browser.close();
-                      console.log(JSON.stringify({ ok: false, error: e.message }));
-                    }
-                  })();
-                `
-                
-                fs.writeFileSync(scriptPath, script)
-                
-                const result = execSync('node "' + scriptPath + '" "' + url + '"', {
-                  encoding: 'utf8',
-                  timeout: 35000,
-                  maxBuffer: 10 * 1024 * 1024,
-                  cwd: process.cwd()
-                })
-                
-                // Clean up
-                try { fs.unlinkSync(scriptPath) } catch {}
-                
-                return JSON.parse(result.trim())
-              } catch (e) {
-                return { ok: false, error: e?.message || String(e) }
-              }
-            }
+            const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
 
             function verifyBacklink(html, expected) {
               if (!html || !expected) return { found: false, links: [], reason: 'empty input' }
               const target = expected.replace(/\/$/, '')
               
-              // Try multiple regex patterns to be more robust
               const patterns = [
-                /href\s*=\s*["']([^"']+)["']/gi,  // Standard quoted href
-                /href\s*=\s*([^\s>]+)/gi,          // Unquoted href
+                /href\s*=\s*["']([^"']+)["']/gi,
+                /href\s*=\s*([^\s>]+)/gi,
               ]
               
               const foundLinks = []
@@ -326,6 +268,122 @@ jobs:
               return { found: false, links: foundLinks, allMatches: allMatches.slice(0, 20), target }
             }
 
+            async function fastHttpFetch(url, timeoutMs = 15000) {
+              const controller = new AbortController()
+              const timer = setTimeout(() => controller.abort(), timeoutMs)
+              try {
+                try {
+                  const u = new URL(url)
+                  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Invalid protocol')
+                  const h = u.hostname
+                  if (h === 'localhost' || h === '127.0.0.1' || h === '::1') throw new Error('Localhost not allowed')
+                  if (/^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h)) {
+                    throw new Error('Private IP not allowed')
+                  }
+                } catch (e) {
+                  return { ok: false, error: e.message }
+                }
+
+                const res = await fetch(url, {
+                  method: 'GET',
+                  redirect: 'follow',
+                  headers: {
+                    'user-agent': USER_AGENT,
+                    accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                  },
+                  signal: controller.signal,
+                })
+                const body = await res.text()
+                return { ok: res.status >= 200 && res.status < 400, status: res.status, body, url: res.url }
+              } catch (e) {
+                return { ok: false, error: e?.message || String(e) }
+              } finally {
+                clearTimeout(timer)
+              }
+            }
+
+            // Reusable verification logic: HTTP fetch first, Playwright fallback
+            async function checkUrlReachability(url, { requireBacklink = false, expected = '' } = {}) {
+              const fastRes = await fastHttpFetch(url, 15000)
+              if (fastRes.ok) {
+                if (!requireBacklink) {
+                  return fastRes
+                }
+                const v = verifyBacklink(fastRes.body || '', expected)
+                if (v.found) {
+                  return { ...fastRes, verifyResult: v }
+                }
+                core.info('fastHttpFetch succeeded but backlink not found in raw HTML. Falling back to Playwright...')
+              } else {
+                core.info(`fastHttpFetch failed (${fastRes.status || fastRes.error}). Falling back to Playwright...`)
+              }
+
+              try {
+                const { execSync } = require('child_process')
+                const fs = require('fs')
+                const path = require('path')
+                
+                const scriptPath = path.join(process.cwd(), 'check-url-pw.js')
+                const script = `
+                  const { chromium } = require('@playwright/test');
+                  const targetUrl = process.argv[2];
+                  (async () => {
+                    let browser;
+                    try {
+                      browser = await chromium.launch({ headless: true });
+                      const context = await browser.newContext({
+                        userAgent: '${USER_AGENT}'
+                      });
+                      const page = await context.newPage();
+                      
+                      let status = 200;
+                      try {
+                        const response = await page.goto(targetUrl, {
+                          waitUntil: 'domcontentloaded',
+                          timeout: 20000
+                        });
+                        if (response) status = response.status();
+                      } catch (navErr) {}
+                      
+                      try {
+                        await page.waitForTimeout(2000);
+                      } catch {}
+                      
+                      const body = await page.content();
+                      const finalUrl = page.url();
+                      await browser.close();
+                      
+                      console.log(JSON.stringify({ ok: status >= 200 && status < 400, status, body, url: finalUrl }));
+                    } catch (e) {
+                      if (browser) await browser.close();
+                      console.log(JSON.stringify({ ok: false, error: e.message }));
+                    }
+                  })();
+                `
+                
+                fs.writeFileSync(scriptPath, script)
+                
+                const result = execSync('node "' + scriptPath + '" "' + url + '"', {
+                  encoding: 'utf8',
+                  timeout: 30000,
+                  maxBuffer: 10 * 1024 * 1024,
+                  cwd: process.cwd()
+                })
+                
+                try { fs.unlinkSync(scriptPath) } catch {}
+                
+                const parsed = JSON.parse(result.trim())
+                if (requireBacklink && parsed.ok && parsed.body) {
+                  parsed.verifyResult = verifyBacklink(parsed.body, expected)
+                }
+                return parsed
+              } catch (e) {
+                if (fastRes.ok || fastRes.status) return fastRes
+                return { ok: false, error: e?.message || String(e) }
+              }
+            }
+
             function normalizeUrl(rawUrl) {
               if (!isNonEmptyString(rawUrl)) return null
               const u = rawUrl.trim()
@@ -340,49 +398,20 @@ jobs:
               }
             }
 
-            async function checkUrl(url, { timeoutMs }) {
-              const controller = new AbortController()
-              const timer = setTimeout(() => controller.abort(), timeoutMs)
-              try {
-                // SSRF Protection
-                try {
-                  const u = new URL(url)
-                  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Invalid protocol')
-                  const h = u.hostname
-                  if (h === 'localhost' || h === '127.0.0.1' || h === '::1') throw new Error('Localhost not allowed')
-                  if (/^10\./.test(h)) throw new Error('Private IP not allowed')
-                  if (/^192\.168\./.test(h)) throw new Error('Private IP not allowed')
-                  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h)) throw new Error('Private IP not allowed')
-                } catch (e) {
-                  return { ok: false, error: e.message }
-                }
-
-                const res = await fetch(url, {
-                  method: 'GET',
-                  redirect: 'follow',
-                  headers: {
-                    'user-agent': 'fuwari-auto-pr/1.0 (+github actions)',
-                    accept: 'text/html,application/json,image/*,*/*;q=0.8',
-                  },
-                  signal: controller.signal,
-                })
-                return { ok: res.status >= 200 && res.status < 400, status: res.status }
-              } catch (e) {
-                return { ok: false, error: e?.message || String(e) }
-              } finally {
-                clearTimeout(timer)
-              }
-            }
-
             async function setLabels({ addLabels, removeLabels, skipIfSame }) {
               const addSet = new Set(addLabels || [])
               const removeSet = new Set(removeLabels || [])
               for (const x of addSet) removeSet.delete(x)
 
-              const current = await github.rest.issues.get({ owner, repo, issue_number: pull_number })
-              const currentLabels = new Set((current.data.labels || []).map((l) => l.name))
+              let currentLabels = new Set()
+              try {
+                const current = await github.rest.issues.get({ owner, repo, issue_number: pull_number })
+                currentLabels = new Set((current.data.labels || []).map((l) => l.name))
+              } catch (e) {
+                core.warning(`setLabels: get issue failed: ${e?.message || e}`)
+              }
 
-              if (skipIfSame) {
+              if (skipIfSame && currentLabels.size > 0) {
                 for (const name of addSet) {
                   if (currentLabels.has(name)) {
                     core.info(`Label ${name} already set, skip label operations`)
@@ -397,14 +426,18 @@ jobs:
                   try {
                     await github.rest.issues.removeLabel({ owner, repo, issue_number: pull_number, name })
                   } catch (e) {
-                    if (e.status !== 404) throw e
+                    if (e.status !== 404) core.warning(`removeLabel ${name} failed: ${e?.message || e}`)
                   }
                 }
               }
 
               const finalAdd = Array.from(addSet).filter((name) => !currentLabels.has(name))
               if (finalAdd.length) {
-                await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: finalAdd })
+                try {
+                  await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: finalAdd })
+                } catch (e) {
+                  core.warning(`addLabels failed: ${e?.message || e}`)
+                }
               }
             }
 
@@ -679,7 +712,7 @@ jobs:
                   return lines.join('\n')
                 }
 
-                const fetched = await checkUrlReachability(backlinkUrl)
+                const fetched = await checkUrlReachability(backlinkUrl, { requireBacklink: true, expected })
                 if (!fetched.ok) {
                   core.info(`bidir: fetch backlink not ok status=${fetched.status}`)
                   await setLabels({ addLabels: [LABEL_BIDIR], removeLabels: [LABEL_BIDIR_OK] })
@@ -701,15 +734,15 @@ jobs:
                 const html = fetched.body || ''
                 core.info(`bidir: html length=${html.length}`)
 
-                const result = verifyBacklink(html, expected)
+                const result = fetched.verifyResult || verifyBacklink(html, expected)
                 const found = result.found
                 core.info(`bidir: expected=${expected} found=${found}`)
                 core.info(`bidir: target after normalization=${result.target || expected.replace(/\/$/, '')}`)
-                core.info(`bidir: found ${result.links.length} http(s) links in page`)
+                core.info(`bidir: found ${result.links ? result.links.length : 0} http(s) links in page`)
                 if (result.matchedHref) {
                   core.info(`bidir: matched href=${result.matchedHref}`)
                 }
-                if (result.links.length > 0) {
+                if (result.links && result.links.length > 0) {
                   core.info(`bidir: first 10 links: ${result.links.slice(0, 10).join(', ')}`)
                 }
                 if (!found && result.allMatches && result.allMatches.length > 0) {
@@ -724,8 +757,8 @@ jobs:
                     finalUrl: fetched.url,
                     status: fetched.status,
                     title: extractTitle(html),
-                    foundLinksCount: result.links.length,
-                    sampleLinks: result.links.slice(0, 5).join(', '),
+                    foundLinksCount: result.links ? result.links.length : 0,
+                    sampleLinks: result.links ? result.links.slice(0, 5).join(', ') : '',
                   }
                   
                   await createComment(MSG.BIDIR_NOT_FOUND(siteBase, backlinkUrl) + formatBacklinkDebug(debugInfo) + '\n\n' + '请添加后 push 更新（无需评论）。')
@@ -735,11 +768,23 @@ jobs:
                 await setLabels({ addLabels: [LABEL_BIDIR_OK], removeLabels: [LABEL_BIDIR] })
                 core.info('bidir: verified ok -> merge')
 
+                let merged = false
                 try {
+                  core.info('Attempting squash merge...')
                   await github.rest.pulls.merge({ owner, repo, pull_number, merge_method: 'squash' })
+                  merged = true
+                  core.info('Squash merge succeeded')
                 } catch (e) {
-                  await createComment(`${MSG.MERGE_FAIL}${e?.message || e}`)
-                  return
+                  core.warning(`Squash merge failed: ${e?.message || e}, trying standard merge...`)
+                  try {
+                    await github.rest.pulls.merge({ owner, repo, pull_number, merge_method: 'merge' })
+                    merged = true
+                    core.info('Standard merge succeeded')
+                  } catch (e2) {
+                    core.error(`Merge failed: ${e2?.message || e2}`)
+                    await createComment(`${MSG.MERGE_FAIL}${e2?.message || e2}`)
+                    return
+                  }
                 }
               }
 
@@ -761,7 +806,8 @@ jobs:
       - name: Auto-merge
         uses: actions/github-script@v7
         with:
-          github-token: ${{ env.PAT }}
+          github-token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          retries: 3
           script: |
             const owner = context.repo.owner
             const repo = context.repo.repo
@@ -810,7 +856,11 @@ jobs:
               const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
               const footer = `\n\n---\n该评论由 Action 自动化发送，无需回复。\n\n🔗 [查看 Action](${runUrl})`
               const fullBody = body + footer
-              await github.rest.issues.createComment({ owner, repo, issue_number: pull_number, body: fullBody })
+              try {
+                await github.rest.issues.createComment({ owner, repo, issue_number: pull_number, body: fullBody })
+              } catch (e) {
+                core.warning(`createComment failed: ${e?.message || e}`)
+              }
             }
 
             function parseJsonSafe(text) {
@@ -853,49 +903,20 @@ jobs:
               }
             }
 
-            async function checkUrl(url, { timeoutMs }) {
-              const controller = new AbortController()
-              const timer = setTimeout(() => controller.abort(), timeoutMs)
-              try {
-                // SSRF Protection
-                try {
-                  const u = new URL(url)
-                  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Invalid protocol')
-                  const h = u.hostname
-                  if (h === 'localhost' || h === '127.0.0.1' || h === '::1') throw new Error('Localhost not allowed')
-                  if (/^10\./.test(h)) throw new Error('Private IP not allowed')
-                  if (/^192\.168\./.test(h)) throw new Error('Private IP not allowed')
-                  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h)) throw new Error('Private IP not allowed')
-                } catch (e) {
-                  return { ok: false, error: e.message }
-                }
-
-                const res = await fetch(url, {
-                  method: 'GET',
-                  redirect: 'follow',
-                  headers: {
-                    'user-agent': 'fuwari-auto-pr/1.0 (+github actions)',
-                    accept: 'text/html,application/json,image/*,*/*;q=0.8',
-                  },
-                  signal: controller.signal,
-                })
-                return { ok: res.status >= 200 && res.status < 400, status: res.status }
-              } catch (e) {
-                return { ok: false, error: e?.message || String(e) }
-              } finally {
-                clearTimeout(timer)
-              }
-            }
-
             async function setLabels({ addLabels, removeLabels, skipIfSame }) {
               const addSet = new Set(addLabels || [])
               const removeSet = new Set(removeLabels || [])
               for (const x of addSet) removeSet.delete(x)
 
-              const current = await github.rest.issues.get({ owner, repo, issue_number: pull_number })
-              const currentLabels = new Set((current.data.labels || []).map((l) => l.name))
+              let currentLabels = new Set()
+              try {
+                const current = await github.rest.issues.get({ owner, repo, issue_number: pull_number })
+                currentLabels = new Set((current.data.labels || []).map((l) => l.name))
+              } catch (e) {
+                core.warning(`setLabels: get issue failed: ${e?.message || e}`)
+              }
 
-              if (skipIfSame) {
+              if (skipIfSame && currentLabels.size > 0) {
                 for (const name of addSet) {
                   if (currentLabels.has(name)) {
                     core.info(`Label ${name} already set, skip label operations`)
@@ -910,14 +931,18 @@ jobs:
                   try {
                     await github.rest.issues.removeLabel({ owner, repo, issue_number: pull_number, name })
                   } catch (e) {
-                    if (e.status !== 404) throw e
+                    if (e.status !== 404) core.warning(`removeLabel ${name} failed: ${e?.message || e}`)
                   }
                 }
               }
 
               const finalAdd = Array.from(addSet).filter((name) => !currentLabels.has(name))
               if (finalAdd.length) {
-                await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: finalAdd })
+                try {
+                  await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: finalAdd })
+                } catch (e) {
+                  core.warning(`addLabels failed: ${e?.message || e}`)
+                }
               }
             }
 
@@ -1107,13 +1132,52 @@ jobs:
             })
             const siteBase = await getSiteBase(pr.data.base.repo.default_branch)
 
+            const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+
+            async function fastHttpFetch(url, timeoutMs = 15000) {
+              const controller = new AbortController()
+              const timer = setTimeout(() => controller.abort(), timeoutMs)
+              try {
+                try {
+                  const u = new URL(url)
+                  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Invalid protocol')
+                  const h = u.hostname
+                  if (h === 'localhost' || h === '127.0.0.1' || h === '::1') throw new Error('Localhost not allowed')
+                  if (/^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h)) {
+                    throw new Error('Private IP not allowed')
+                  }
+                } catch (e) {
+                  return { ok: false, error: e.message }
+                }
+
+                const res = await fetch(url, {
+                  method: 'GET',
+                  redirect: 'follow',
+                  headers: {
+                    'user-agent': USER_AGENT,
+                    accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                  },
+                  signal: controller.signal,
+                })
+                const body = await res.text()
+                return { ok: res.status >= 200 && res.status < 400, status: res.status, body, url: res.url }
+              } catch (e) {
+                return { ok: false, error: e?.message || String(e) }
+              } finally {
+                clearTimeout(timer)
+              }
+            }
+
             async function checkUrlReachability(url) {
+              const fastRes = await fastHttpFetch(url, 15000)
+              if (fastRes.ok) return fastRes
+
               try {
                 const { execSync } = require('child_process')
                 const fs = require('fs')
                 const path = require('path')
                 
-                // Create a temporary Playwright script in current directory
                 const scriptPath = path.join(process.cwd(), 'check-url-pw.js')
                 const script = `
                   const { chromium } = require('@playwright/test');
@@ -1123,19 +1187,25 @@ jobs:
                     try {
                       browser = await chromium.launch({ headless: true });
                       const context = await browser.newContext({
-                        userAgent: 'fuwari-auto-pr/1.0 (+github actions)'
+                        userAgent: '${USER_AGENT}'
                       });
                       const page = await context.newPage();
                       
-                      const response = await page.goto(targetUrl, {
-                        waitUntil: 'networkidle',
-                        timeout: 30000
-                      });
+                      let status = 200;
+                      try {
+                        const response = await page.goto(targetUrl, {
+                          waitUntil: 'domcontentloaded',
+                          timeout: 20000
+                        });
+                        if (response) status = response.status();
+                      } catch (navErr) {}
+                      
+                      try {
+                        await page.waitForTimeout(2000);
+                      } catch {}
                       
                       const body = await page.content();
                       const finalUrl = page.url();
-                      const status = response.status();
-                      
                       await browser.close();
                       
                       console.log(JSON.stringify({ ok: status >= 200 && status < 400, status, body, url: finalUrl }));
@@ -1150,16 +1220,16 @@ jobs:
                 
                 const result = execSync('node "' + scriptPath + '" "' + url + '"', {
                   encoding: 'utf8',
-                  timeout: 35000,
+                  timeout: 30000,
                   maxBuffer: 10 * 1024 * 1024,
                   cwd: process.cwd()
                 })
                 
-                // Clean up
                 try { fs.unlinkSync(scriptPath) } catch {}
                 
                 return JSON.parse(result.trim())
               } catch (e) {
+                if (fastRes.ok || fastRes.status) return fastRes
                 return { ok: false, error: e?.message || String(e) }
               }
             }
@@ -1207,23 +1277,33 @@ jobs:
               return
             }
 
+            let merged = false
             try {
+              core.info('Attempting squash merge...')
               await github.rest.pulls.merge({ owner, repo, pull_number, merge_method: 'squash' })
+              merged = true
+              core.info('Squash merge succeeded')
             } catch (e) {
-              core.error(`merge failed: status=${e?.status || ''}`)
-              core.error(`merge failed: message=${e?.message || e}`)
+              core.warning(`Squash merge failed: ${e?.message || e}, trying merge commit...`)
               try {
-                core.error(`merge failed: response=${JSON.stringify(e?.response?.data || null)}`)
-              } catch {}
-              await createComment(
-                [
-                  '自动合并失败。',
-                  '',
-                  `错误信息：${e?.message || e}`,
-                  `HTTP 状态：${e?.status || 'unknown'}`,
-                  `响应：${(() => { try { return JSON.stringify(e?.response?.data || null) } catch { return 'unavailable' } })()}`,
-                ].join('\n')
-              )
-              return
+                await github.rest.pulls.merge({ owner, repo, pull_number, merge_method: 'merge' })
+                merged = true
+                core.info('Merge commit succeeded')
+              } catch (e2) {
+                core.error(`merge failed: status=${e2?.status || ''} message=${e2?.message || e2}`)
+                try {
+                  core.error(`merge failed: response=${JSON.stringify(e2?.response?.data || null)}`)
+                } catch {}
+                await createComment(
+                  [
+                    '自动合并失败。',
+                    '',
+                    `错误信息：${e2?.message || e2}`,
+                    `HTTP 状态：${e2?.status || 'unknown'}`,
+                    `响应：${(() => { try { return JSON.stringify(e2?.response?.data || null) } catch { return 'unavailable' } })()}`,
+                  ].join('\n')
+                )
+                return
+              }
             }
 

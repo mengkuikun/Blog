@@ -1,6 +1,6 @@
 ---
 title: 写博客还要每次开本地服务？本地 Markdown 即时预览与沉浸阅读模式食用指南
-published: 2026-09-30T19:00:00
+published: 2026-09-30T19:00:00+08:00
 description: 告别本地反复运行 pnpm dev 和编辑器排版货不对板，纯浏览器端 1:1 复刻博客排版与全新沉浸阅读模式正式上线！
 image: /assets/images/markdown-preview-guide.jpg
 tags:

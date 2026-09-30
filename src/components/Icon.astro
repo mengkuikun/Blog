@@ -1,4 +1,7 @@
 ---
+import fs from "node:fs";
+import path from "node:path";
+
 interface Props {
 	name: string;
 	class?: string;
@@ -8,33 +11,68 @@ interface Props {
 const { name, class: className = "", ...rest } = Astro.props;
 
 // 解析图标名称，格式：collection:icon-name
-const [collection, iconName] = name.includes(':') ? name.split(':', 2) : ['', name];
+const [collection, iconName] = name.includes(":")
+	? name.split(":", 2)
+	: ["", name];
 
-// Iconify CDN URL
-const iconifyUrl = `https://api.iconify.design/${collection}/${iconName}.svg`;
+// 检查本地 public/assets/icons 下是否有已缓存的静态 SVG
+const localSvgPath = path.join(
+	process.cwd(),
+	"public",
+	"assets",
+	"icons",
+	collection,
+	`${iconName}.svg`,
+);
+let localSvgContent = "";
 
-// 检查是否通过 Tailwind 类指定了宽高
+if (fs.existsSync(localSvgPath)) {
+	try {
+		localSvgContent = fs.readFileSync(localSvgPath, "utf8");
+	} catch {}
+}
+
 const hasCustomWidth = /\bw-\S+/.test(className);
 const hasCustomHeight = /\bh-\S+/.test(className);
+
+// 本地 SVG 优先：内联渲染以消除网络延迟与跨域/失效问题
+let renderedSvg = "";
+if (localSvgContent) {
+	const extraStyle = `${hasCustomWidth ? "" : "width: 1em; "}${hasCustomHeight ? "" : "height: 1em; "}display: inline-block; vertical-align: -0.125em;`;
+	renderedSvg = localSvgContent.replace(
+		/<svg\b([^>]*)>/i,
+		`<svg$1 class="iconify-icon inline-block align-[-0.125em] ${className}" data-icon="${name}" style="${extraStyle}">`,
+	);
+}
+
+// Iconify URL 兜底
+const localIconUrl = `/assets/icons/${collection}/${iconName}.svg`;
+const remoteIconUrl = `https://api.iconify.design/${collection}/${iconName}.svg`;
+const iconUrl = localSvgContent ? localIconUrl : remoteIconUrl;
 ---
 
-<span 
-	class:list={["iconify-icon", className]} 
-	data-icon={name}
-	{...rest}
-	style={`
-		display: inline-block;
-		${hasCustomWidth ? '' : 'width: 1em;'}
-		${hasCustomHeight ? '' : 'height: 1em;'}
-		background-color: currentColor;
-		mask-image: url('${iconifyUrl}');
-		mask-size: contain;
-		mask-repeat: no-repeat;
-		mask-position: center;
-		-webkit-mask-image: url('${iconifyUrl}');
-		-webkit-mask-size: contain;
-		-webkit-mask-repeat: no-repeat;
-		-webkit-mask-position: center;
-		vertical-align: -0.125em;
-	`}
-></span>
+{renderedSvg ? (
+	<Fragment set:html={renderedSvg} />
+) : (
+	<span 
+		class:list={["iconify-icon", className]} 
+		data-icon={name}
+		{...rest}
+		style={`
+			display: inline-block;
+			${hasCustomWidth ? "" : "width: 1em;"}
+			${hasCustomHeight ? "" : "height: 1em;"}
+			background-color: currentColor;
+			mask-image: url('${iconUrl}');
+			mask-size: contain;
+			mask-repeat: no-repeat;
+			mask-position: center;
+			-webkit-mask-image: url('${iconUrl}');
+			-webkit-mask-size: contain;
+			-webkit-mask-repeat: no-repeat;
+			-webkit-mask-position: center;
+			vertical-align: -0.125em;
+		`}
+	></span>
+)}
+
